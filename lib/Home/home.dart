@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
-import 'package:sales/Controller/home_controller.dart';
+import 'package:sales/Home/home_controller.dart';
 
 class Home extends StatelessWidget {
   final HomeController controller = Get.put(HomeController());

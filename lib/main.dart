@@ -3,16 +3,16 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:sales/Auth/Signin.dart';
-import 'package:sales/Screens/complaint.dart';
-import 'package:sales/Screens/followup.dart';
-import 'package:sales/Screens/lead_list.dart';
-import 'package:sales/Screens/leadmanagement.dart';
-import 'package:sales/Screens/order_managmenet.dart';
-import 'package:sales/Screens/profile.dart';
-import 'package:sales/Screens/review.dart';
+import 'package:sales/Complaint/complaint.dart';
+import 'package:sales/FollowUp/followup.dart';
+import 'package:sales/Lead/lead_list.dart';
+import 'package:sales/Lead/leadmanagement.dart';
+import 'package:sales/Order/order_managmenet.dart';
+import 'package:sales/Profile/profile.dart';
+import 'package:sales/Review/review.dart';
 import 'package:sales/firebase_options.dart';
 
-import 'package:sales/Screens/home.dart';
+import 'package:sales/Home/home.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

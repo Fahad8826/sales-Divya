@@ -19,8 +19,7 @@ class LeadManagementController extends GetxController {
   var followUpDate = Rxn<DateTime>();
   var productImageUrl = Rxn<String>();
   var productIdList = <String>[].obs;
-  final makerList =
-      <Map<String, dynamic>>[].obs; // each map: {id: ..., name: ...}
+  final makerList = <Map<String, dynamic>>[].obs;
   final selectedMakerId = RxnString();
   final statusList = ['HOT', 'WARM', 'COOL'].obs;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -217,13 +216,28 @@ class LeadManagementController extends GetxController {
       final productDoc = querySnapshot.docs.first;
       final docId = productDoc.id;
       final productId = productDoc['id'];
-      final currentStock =
-          productDoc['stock']; // stock must be int in Firestore
+      final currentStock = productDoc['stock'];
 
       final orderedQuantity = int.tryParse(nosController.text) ?? 0;
       if (orderedQuantity <= 0) {
         Get.snackbar('Error', 'Invalid number of items ordered');
         return;
+      }
+
+      // if (orderedQuantity > currentStock) {
+      //   Get.snackbar('Error', 'Not enough stock available');
+      //   return;
+      // }
+
+      // ✅ Update stock first
+      if (currentStock > 0) {
+        // Only subtract if stock is positive
+        final updatedStock = currentStock - orderedQuantity;
+        await _firestore.collection('products').doc(docId).update({
+          'stock': updatedStock,
+        });
+        // Update local product stock map as well
+        productStockMap[selectedProductId.value!] = updatedStock;
       }
 
       final newOrderId = await generateCustomOrderId();
@@ -235,7 +249,7 @@ class LeadManagementController extends GetxController {
 
       final userId = currentUser.uid;
 
-      // Save the order
+      // ✅ Place the order
       await _firestore.collection('Orders').add({
         'orderId': newOrderId,
         'name': nameController.text,
@@ -260,13 +274,6 @@ class LeadManagementController extends GetxController {
         'order_status': "pending",
       });
 
-      // Update stock (won't go negative because of previous check)
-      if (currentStock > 0) {
-        final updatedStock = currentStock - orderedQuantity;
-        await _firestore.collection('products').doc(docId).update({
-          'stock': updatedStock,
-        });
-      }
       Get.snackbar('Success', 'Order placed successfully');
       clearForm();
       Navigator.of(Get.context!).pop();
@@ -369,14 +376,6 @@ class LeadManagementController extends GetxController {
   String? validateNos(String? value) {
     if (value == null || value.isEmpty) return 'NOS is required';
     if (!RegExp(r'^\d+$').hasMatch(value)) return 'Enter valid number';
-
-    // final enteredNos = int.tryParse(value);
-    // final selectedProductId = this.selectedProductId.value;
-    // final availableStock = productStockMap[selectedProductId] ?? 0;
-
-    // if (enteredNos != null && enteredNos > availableStock) {
-    //   return 'Only $availableStock in stock';
-    // }
 
     return null;
   }

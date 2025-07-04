@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:sales/Controller/complain_controller.dart';
-import 'package:sales/Screens/response_page.dart';
+import 'package:sales/Complaint/complain_controller.dart';
+import 'package:sales/Complaint/response_page.dart';
 
 class Complaint extends StatelessWidget {
   const Complaint({super.key});

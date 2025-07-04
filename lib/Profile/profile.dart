@@ -1,7 +1,7 @@
 // import 'package:flutter/material.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:sales/Controller/profilecontroller.dart';
+import 'package:sales/Profile/profilecontroller.dart';
 
 class Profile extends StatelessWidget {
   const Profile({super.key});

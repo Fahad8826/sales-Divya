@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:sales/Controller/sign_in_controller.dart';
-import 'package:sales/Screens/home.dart';
+import 'package:sales/Auth/sign_in_controller.dart';
+import 'package:sales/Home/home.dart';
 
 class Signin extends StatelessWidget {
   final controller = Get.put(SigninController());

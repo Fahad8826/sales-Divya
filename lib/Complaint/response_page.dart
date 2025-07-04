@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:sales/Controller/response_controller.dart';
-import 'package:sales/Screens/response_details.dart';
+import 'package:sales/Complaint/response_controller.dart';
+import 'package:sales/Complaint/response_details.dart';
 
 class ResponsePage extends StatelessWidget {
   ResponsePage({super.key});

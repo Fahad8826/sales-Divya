@@ -2,7 +2,7 @@ import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:sales/Controller/individual_followup_controller.dart';
+import 'package:sales/FollowUp/individual_followup_controller.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// Standard Individual Follow Up screen with all details in a single card
@@ -278,15 +278,15 @@ class IndividualFollowUp extends StatelessWidget {
                         fontSize: baseFontSize,
                         iconSize: iconSize,
                       ),
-                      Obx(
-                        () => _buildInfoRow(
-                          label: 'Product Name',
-                          value: controller.productName.value,
-                          icon: Icons.label,
-                          fontSize: baseFontSize,
-                          iconSize: iconSize,
-                        ),
-                      ),
+                      // Obx(
+                      //   () => _buildInfoRow(
+                      //     label: 'Product Name',
+                      //     value: controller.productName.value,
+                      //     icon: Icons.label,
+                      //     fontSize: baseFontSize,
+                      //     iconSize: iconSize,
+                      //   ),
+                      // ),
                       _buildInfoRow(
                         label: 'Quantity',
                         value: controller.data['nos']?.toString() ?? 'N/A',
@@ -361,28 +361,39 @@ class IndividualFollowUp extends StatelessWidget {
                     SizedBox(
                       width: screenWidth * 0.4,
                       child: ElevatedButton.icon(
-                        onPressed: () async {
-                          bool confirmed = await showConfirmationDialog(
-                            context,
-                            'Convert Lead',
-                            'Do you want to convert this lead to an order?',
-                          );
-                          if (confirmed) {
-                            controller.convertLeadToOrder(context);
-                            Get.snackbar(
-                              'Converted',
-                              'Lead converted to order.',
-                            );
-                            Navigator.of(context).pop();
-                          }
-                        },
                         icon: Icon(Icons.swap_horiz, size: iconSize),
-                        label: Text('Convert to Order'),
+                        label: const Text('Convert to Order'),
                         style: elevatedButtonStyle(
                           Colors.purple,
                           cardPadding,
                           baseFontSize,
                         ),
+                        onPressed: () async {
+                          final controller =
+                              Get.find<IndividualFollowUpController>();
+
+                          final confirmed = await showConvertDialog(
+                            context,
+                            controller,
+                          );
+
+                          if (confirmed) {
+                            final makerMap = controller.makerList.firstWhere(
+                              (m) =>
+                                  m['id'] == controller.selectedMakerId.value,
+                            );
+
+                            await controller.convertLeadToOrder(
+                              context,
+                              makerId: makerMap['id']!,
+                              makerName: makerMap['name']!,
+                              nos: makerMap['nos']!,
+                            );
+                            // After success we already show a snackbar in the controller,
+                            // but you can still close your details screen if needed:
+                            Navigator.of(context).pop();
+                          }
+                        },
                       ),
                     ),
 
@@ -489,5 +500,57 @@ class IndividualFollowUp extends StatelessWidget {
           ),
         ) ??
         false; // Return false if dialog dismissed
+  }
+
+  Future<bool> showConvertDialog(
+    BuildContext context,
+    IndividualFollowUpController c,
+  ) async {
+    // Ensure makers are loaded first
+    await c.fetchMakers();
+    if (c.makerList.isEmpty) return false;
+
+    return await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
+        title: const Text('Convert Lead'),
+        content: Obx(
+          () => DropdownButtonFormField<String>(
+            isExpanded: true,
+            value: c.selectedMakerId.value.isEmpty
+                ? null
+                : c.selectedMakerId.value,
+            decoration: const InputDecoration(
+              labelText: 'Select Maker',
+              border: OutlineInputBorder(),
+            ),
+            items: c.makerList
+                .map(
+                  (m) => DropdownMenuItem<String>(
+                    value: m['id'],
+                    child: Text(m['name']!),
+                  ),
+                )
+                .toList(),
+            onChanged: (val) => c.selectedMakerId.value = val ?? '',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          Obx(
+            () => ElevatedButton(
+              onPressed: c.selectedMakerId.value.isEmpty
+                  ? null
+                  : () => Navigator.pop(context, true),
+              child: const Text('Convert'),
+            ),
+          ),
+        ],
+      ),
+    ).then((value) => value ?? false);
   }
 }

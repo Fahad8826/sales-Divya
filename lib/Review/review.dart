@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
-import 'package:sales/Screens/individual_review.dart';
+import 'package:sales/Review/individual_review.dart';
 
 class Review extends StatefulWidget {
   const Review({super.key});

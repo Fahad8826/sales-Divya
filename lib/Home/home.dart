@@ -13,22 +13,25 @@ class Home extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: _buildAppBar(),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildHeader(),
-          Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
-                  _buildStatsSection(),
-                  const SizedBox(height: 32),
-                  _buildQuickActions(),
-                ],
-              ),
-            ),
-          ),
-        ],
+      body: RefreshIndicator(
+        onRefresh: () async {
+          await controller.fetchCounts();
+          await controller.getCurrentLocation();
+        },
+        color: Colors.white,
+        backgroundColor: Colors.blue,
+        displacement: 40,
+        strokeWidth: 3.5,
+        child: ListView(
+          padding: EdgeInsets.zero,
+          physics: const AlwaysScrollableScrollPhysics(), // important!
+          children: [
+            _buildHeader(),
+            _buildStatsSection(),
+            const SizedBox(height: 32),
+            _buildQuickActions(),
+          ],
+        ),
       ),
     );
   }
@@ -415,7 +418,7 @@ class Home extends StatelessWidget {
         'subtitle': 'Manage your leads',
         'icon': 'assets/svg/lead_management.svg',
         'color': const Color(0xFF3B82F6),
-        'count': '',
+        'count': () => '', // Static value
         'route': '/leadmanagment',
       },
       {
@@ -423,7 +426,8 @@ class Home extends StatelessWidget {
         'subtitle': 'Pending follow-ups',
         'icon': 'assets/svg/follow_up.svg',
         'color': const Color(0xFF3B82F6),
-        'count': controller.totalLeads.toString(),
+        'count': () =>
+            controller.totalLeads.value.toString(), // Directly use totalLeads
         'route': '/followup',
       },
       {
@@ -431,7 +435,8 @@ class Home extends StatelessWidget {
         'subtitle': 'Track orders',
         'icon': 'assets/svg/order_management.svg',
         'color': const Color(0xFF3B82F6),
-        'count': controller.totalOrders.toString(),
+        'count': () =>
+            controller.totalOrders.value.toString(), // Directly use totalOrders
         'route': '/ordermanagement',
       },
       {
@@ -439,7 +444,8 @@ class Home extends StatelessWidget {
         'subtitle': 'Customer feedback',
         'icon': 'assets/svg/review.svg',
         'color': const Color(0xFF3B82F6),
-        'count': controller.totalPostSaleFollowUp.toString(),
+        'count': () => controller.totalPostSaleFollowUp.value
+            .toString(), // Directly use totalPostSaleFollowUp
         'route': '/review',
       },
       {
@@ -447,7 +453,7 @@ class Home extends StatelessWidget {
         'subtitle': 'Support tickets',
         'icon': 'assets/svg/complaint.svg',
         'color': const Color(0xFF3B82F6),
-        'count': '',
+        'count': () => '', // Static value
         'route': '/complaint',
       },
     ];
@@ -457,15 +463,17 @@ class Home extends StatelessWidget {
         int index = entry.key;
         Map<String, dynamic> item = entry.value;
 
-        return Obx(
-          () => Container(
+        return Obx(() {
+          debugPrint(
+            "Obx rebuilding for ${item['title']}, count: ${item['count']()}",
+          );
+          return Container(
             margin: const EdgeInsets.only(bottom: 12),
             child: Material(
               color: Colors.transparent,
               child: InkWell(
                 onTap: () {
                   controller.selectMenuItem(index);
-                  // Navigation using GetX
                   Future.delayed(const Duration(milliseconds: 120), () {
                     Get.toNamed(item['route'] as String);
                   });
@@ -498,7 +506,6 @@ class Home extends StatelessWidget {
                       Container(
                         width: 48,
                         height: 48,
-
                         child: Padding(
                           padding: const EdgeInsets.all(10),
                           child: SvgPicture.asset(
@@ -540,9 +547,8 @@ class Home extends StatelessWidget {
                               horizontal: 8,
                               vertical: 4,
                             ),
-
                             child: Text(
-                              item['count'] as String,
+                              item['count'](), // Call the function to get the current count
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
@@ -563,8 +569,8 @@ class Home extends StatelessWidget {
                 ),
               ),
             ),
-          ),
-        );
+          );
+        });
       }).toList(),
     );
   }

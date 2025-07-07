@@ -1,4 +1,3 @@
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -9,7 +8,6 @@ import 'package:sales/Home/home.dart';
 
 class FollowupPage extends StatelessWidget {
   const FollowupPage({super.key});
-
   @override
   Widget build(BuildContext context) {
     final controller = Get.put(FollowupController(), tag: 'followup');
@@ -914,6 +912,91 @@ class FollowupPage extends StatelessWidget {
     }
   }
 
+  //   Widget _buildListView(
+  //     FollowupController controller,
+  //     Size size,
+  //     bool isTablet,
+  //   ) {
+  //     return Obx(() {
+  //       final leads = controller.leads;
+
+  //       if (leads.isEmpty) {
+  //         return Center(
+  //           child: Column(
+  //             mainAxisAlignment: MainAxisAlignment.center,
+  //             children: [
+  //               Icon(Icons.person_search, size: 80, color: Colors.grey[400]),
+  //               const SizedBox(height: 16),
+  //               Text(
+  //                 'No leads available',
+  //                 style: TextStyle(
+  //                   fontSize: 18,
+  //                   fontWeight: FontWeight.w600,
+  //                   color: Colors.grey[600],
+  //                 ),
+  //               ),
+  //               const SizedBox(height: 8),
+  //               Text(
+  //                 'Start by adding your first lead',
+  //                 style: TextStyle(color: Colors.grey[500]),
+  //               ),
+  //             ],
+  //           ),
+  //         );
+  //       }
+
+  //       final filteredLeads = leads
+  //           .where(
+  //             (doc) =>
+  //                 controller.matchesFilters(doc.data() as Map<String, dynamic>),
+  //           )
+  //           .toList();
+  //       final sortedLeads = controller.sortLeadsByFollowUpDate(filteredLeads);
+
+  //       if (sortedLeads.isEmpty) {
+  //         return Center(
+  //           child: Column(
+  //             mainAxisAlignment: MainAxisAlignment.center,
+  //             children: [
+  //               Icon(Icons.search_off, size: 80, color: Colors.grey[400]),
+  //               const SizedBox(height: 16),
+  //               Text(
+  //                 'No leads found',
+  //                 style: TextStyle(
+  //                   fontSize: 18,
+  //                   fontWeight: FontWeight.w600,
+  //                   color: Colors.grey[600],
+  //                 ),
+  //               ),
+  //               const SizedBox(height: 8),
+  //               Text(
+  //                 'Try adjusting your search or filters',
+  //                 style: TextStyle(color: Colors.grey[500]),
+  //               ),
+  //             ],
+  //           ),
+  //         );
+  //       }
+
+  //       return ListView.builder(
+  //         padding: const EdgeInsets.symmetric(vertical: 8),
+  //         itemCount: sortedLeads.length,
+  //         itemBuilder: (context, index) {
+  //           final lead = sortedLeads[index];
+  //           final data = lead.data() as Map<String, dynamic>;
+  //           return _buildListTile(
+  //             context,
+  //             data,
+  //             lead.id,
+  //             controller,
+  //             size,
+  //             isTablet,
+  //           );
+  //         },
+  //       );
+  //     });
+  //   }
+  // }
   Widget _buildListView(
     FollowupController controller,
     Size size,
@@ -921,31 +1004,6 @@ class FollowupPage extends StatelessWidget {
   ) {
     return Obx(() {
       final leads = controller.leads;
-
-      if (leads.isEmpty) {
-        return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.person_search, size: 80, color: Colors.grey[400]),
-              const SizedBox(height: 16),
-              Text(
-                'No leads available',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey[600],
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Start by adding your first lead',
-                style: TextStyle(color: Colors.grey[500]),
-              ),
-            ],
-          ),
-        );
-      }
 
       final filteredLeads = leads
           .where(
@@ -981,9 +1039,21 @@ class FollowupPage extends StatelessWidget {
       }
 
       return ListView.builder(
+        controller: controller.scrollController, // 👈 Use controller's scroll
         padding: const EdgeInsets.symmetric(vertical: 8),
-        itemCount: sortedLeads.length,
+        itemCount: sortedLeads.length + 1, // +1 for loading indicator
         itemBuilder: (context, index) {
+          if (index == sortedLeads.length) {
+            return Obx(
+              () => controller.isFetchingMoreLeads.value
+                  ? const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  : const SizedBox.shrink(),
+            );
+          }
+
           final lead = sortedLeads[index];
           final data = lead.data() as Map<String, dynamic>;
           return _buildListTile(

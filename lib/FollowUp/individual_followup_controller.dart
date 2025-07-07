@@ -34,30 +34,6 @@ class IndividualFollowUpController extends GetxController {
     _loadOrderSpecificData(); // Load products and maker for orders
   }
 
-  // // Fetches the name of the single product associated with a Lead (if 'productID' exists)
-  // void _fetchProductName() async {
-  //   final productID = data['productID'];
-  //   if (productID != null && productID.isNotEmpty) {
-  //     try {
-  //       final querySnapshot = await _firestore
-  //           .collection('products')
-  //           .where('id', isEqualTo: productID)
-  //           .limit(1)
-  //           .get();
-
-  //       if (querySnapshot.docs.isNotEmpty) {
-  //         productName.value = querySnapshot.docs.first['name'] ?? 'N/A';
-  //       } else {
-  //         productName.value = 'Product Not Found';
-  //       }
-  //     } catch (e) {
-  //       print('Error fetching product name: $e');
-  //       productName.value = 'Error fetching product';
-  //     }
-  //   } else {
-  //     productName.value = 'No Product ID';
-  //   }
-  // }
 
   Future<void> loadDropdownOptions() async {
     final productSnap = await FirebaseFirestore.instance

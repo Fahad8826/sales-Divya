@@ -25,7 +25,14 @@ class LeadList extends StatelessWidget {
             },
             icon: Icon(Icons.arrow_back, color: Colors.white),
           ),
-          title: const Text('Leads & Orders'),
+          title: const Text(
+            'Leads & Orders',
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 18,
+              color: Colors.white,
+            ),
+          ),
           centerTitle: true,
           backgroundColor: Color(0xFF3B82F6),
           foregroundColor: Colors.white,
@@ -63,7 +70,7 @@ class LeadList extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey[100],
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.grey[300]!),
       ),
@@ -71,8 +78,10 @@ class LeadList extends StatelessWidget {
         controller: controller.searchController,
         decoration: InputDecoration(
           hintText: 'Search by name, phone, address, ID...',
+          hintStyle: TextStyle(fontSize: 12),
           prefixIcon: Icon(Icons.search, color: Colors.grey),
           border: InputBorder.none,
+
           contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           suffixIcon: Obx(
             () =>
@@ -154,9 +163,10 @@ class LeadList extends StatelessWidget {
       selected: currentValue != 'All',
       onSelected: (_) =>
           _showFilterDialog(label, currentValue, options, onChanged),
-      backgroundColor: Colors.grey[200],
+      backgroundColor: Colors.white,
       selectedColor: Colors.blue[100],
       checkmarkColor: Colors.blue[700],
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
     );
   }
 
@@ -171,9 +181,12 @@ class LeadList extends StatelessWidget {
         ),
         selected: hasDateFilter,
         onSelected: (_) => _selectDateRange(controller),
-        backgroundColor: Colors.grey[200],
+        backgroundColor: Colors.white,
         selectedColor: Colors.blue[100],
         checkmarkColor: Colors.blue[700],
+         shape: RoundedRectangleBorder(
+    borderRadius: BorderRadius.circular(20),
+  ),
       );
     });
   }
@@ -303,185 +316,215 @@ class LeadList extends StatelessWidget {
     final isLead = type == 'Lead';
 
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      elevation: 3,
-      shadowColor: Colors.black.withOpacity(0.1),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      elevation: 2,
+      color: Colors.white,
+      shadowColor: Colors.black.withOpacity(0.08),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Colors.grey.withOpacity(0.1), width: 1),
+      ),
       child: InkWell(
         onTap: () => _navigateToDetails(data, type, docId),
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Header Row with Icon and Type Badge
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Icon Container
                   Container(
-                    padding: const EdgeInsets.all(10),
+                    padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: isLead ? Colors.orange[50] : Colors.green[50],
-                      borderRadius: BorderRadius.circular(10),
+                      color: isLead
+                          ? Colors.orange.withOpacity(0.1)
+                          : Colors.green.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isLead
+                            ? Colors.orange.withOpacity(0.2)
+                            : Colors.green.withOpacity(0.2),
+                        width: 1,
+                      ),
                     ),
                     child: Icon(
                       isLead
-                          ? Icons.person_add_outlined
-                          : Icons.shopping_cart_outlined,
+                          ? Icons.person_add_alt_1_rounded
+                          : Icons.shopping_bag_rounded,
                       color: isLead ? Colors.orange[600] : Colors.green[600],
                       size: 20,
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 16),
+                  // Main Content
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          data['name'] ?? 'No Name',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            color: Colors.black87,
+                        // Name and Date Row
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                data['name'] ?? 'No Name',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 15,
+                                  color: Colors.black87,
+                                  height: 1.2,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            // Type Badge
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 5,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isLead
+                                    ? Colors.orange.withOpacity(0.15)
+                                    : Colors.green.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: isLead
+                                      ? Colors.orange.withOpacity(0.3)
+                                      : Colors.green.withOpacity(0.3),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Text(
+                                type,
+                                style: TextStyle(
+                                  color: isLead
+                                      ? Colors.orange[700]
+                                      : Colors.green[700],
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        // Date and ID Row
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.calendar_today_rounded,
+                              size: 14,
+                              color: Colors.grey[600],
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              controller.formatDateShort(data['createdAt']),
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey[600],
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              // Bottom Row with Additional Info
+              Row(
+                children: [
+                  // Status Badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: statusColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: statusColor.withOpacity(0.3),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            color: statusColor,
+                            shape: BoxShape.circle,
                           ),
                         ),
-                        const SizedBox(height: 2),
+                        const SizedBox(width: 6),
                         Text(
-                          controller.formatDateShort(data['createdAt']),
+                          data['status'] ?? 'N/A',
                           style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
+                            color: statusColor,
+                            fontSize: 7,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: statusColor.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: statusColor.withOpacity(0.3),
-                            width: 1,
-                          ),
-                        ),
-                        child: Text(
-                          data['status'] ?? 'N/A',
-                          style: TextStyle(
-                            color: statusColor,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
+                  const Spacer(),
+
+                  if (data['place'] != null &&
+                      data['place'].toString().isNotEmpty)
+                    Container(
+                      margin: const EdgeInsets.only(left: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
                       ),
-                      const SizedBox(height: 4),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isLead
-                              ? Colors.orange[100]
-                              : Colors.green[100],
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          type,
-                          style: TextStyle(
-                            color: isLead
-                                ? Colors.orange[700]
-                                : Colors.green[700],
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                    ],
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.location_on_rounded,
+                            size: 12,
+                            color: Colors.grey[600],
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            data['place'].toString(),
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey[700],
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  // Arrow Icon
+                  Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 16,
+                    color: Colors.grey[400],
                   ),
                 ],
-              ),
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.grey[50],
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Column(
-                  children: [
-                    _buildInfoRow(
-                      icon: Icons.phone_outlined,
-                      iconColor: Colors.blue[600]!,
-                      label: 'Phone',
-                      value: data['phone1'] ?? 'N/A',
-                    ),
-                    const SizedBox(height: 8),
-                    _buildInfoRow(
-                      icon: Icons.location_on_outlined,
-                      iconColor: Colors.red[600]!,
-                      label: 'Location',
-                      value: data['place'] ?? 'N/A',
-                    ),
-                    const SizedBox(height: 8),
-                    _buildInfoRow(
-                      icon: Icons.inventory_2_outlined,
-                      iconColor: Colors.purple[600]!,
-                      label: 'Product',
-                      value:
-                          '${data['productID'] ?? 'N/A'} (${data['nos'] ?? 'N/A'} items)',
-                    ),
-                  ],
-                ),
               ),
             ],
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildInfoRow({
-    required IconData icon,
-    required Color iconColor,
-    required String label,
-    required String value,
-  }) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, size: 16, color: iconColor),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 11,
-                  color: Colors.grey[600],
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              Text(
-                value,
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: Colors.black87,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 

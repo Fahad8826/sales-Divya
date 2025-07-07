@@ -58,29 +58,7 @@ class FollowupController extends GetxController {
     }
   }
 
-  // Fetch leads from Firestore and bind to reactive list
-  // void fetchLeads() {
-  //   _firestore
-  //       .collection('Leads')
-  //       .where('isArchived', isEqualTo: false)
-  //       .orderBy('createdAt', descending: true)
-  //       .snapshots()
-  //       .listen(
-  //         (snapshot) {
-  //           leads.assignAll(snapshot.docs);
-  //           print('Fetched ${leads.length} leads');
-  //         },
-  //         onError: (e) {
-  //           print('Error fetching leads: $e');
-  //           Get.snackbar(
-  //             'Error',
-  //             'Failed to load leads: $e',
-  //             snackPosition: SnackPosition.BOTTOM,
-  //           );
-  //         },
-  //       );
-  // }
-
+  
   DocumentSnapshot? lastDocument; // Add to controller
 
   Future<void> fetchLeads({bool loadMore = false}) async {

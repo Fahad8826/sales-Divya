@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
@@ -20,29 +19,41 @@ class OrderManagement extends StatelessWidget {
       },
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Order Management',  style: TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 18,
-            color: Colors.white,
-          ),),
+          title: const Text(
+            'Order Management',
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 18,
+              color: Colors.white,
+            ),
+          ),
           centerTitle: true,
           backgroundColor: Color(0xFF3B82F6),
           foregroundColor: Colors.white,
           elevation: 0,
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.refresh),
-              onPressed: () => controller.refreshFilterOptions(),
-            ),
-          ],
         ),
-        body: Column(
-          children: [
-            _buildSearchBar(controller),
-            _buildFilterChips(controller),
-            const Divider(height: 1),
-            Expanded(child: _buildListView(controller)),
-          ],
+        body: RefreshIndicator(
+          onRefresh: () async {
+            await controller.loadInitialItems();
+          },
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Container(
+              constraints: BoxConstraints(
+                minHeight:
+                    MediaQuery.of(Get.context!).size.height - kToolbarHeight,
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildSearchBar(controller),
+                  _buildFilterChips(controller),
+                  _buildListView(controller),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -52,7 +63,7 @@ class OrderManagement extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey[100],
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.grey[300]!),
       ),
@@ -120,7 +131,7 @@ class OrderManagement extends StatelessWidget {
         print('Opening filter dialog for $label with options: $options');
         _showFilterDialog(label, currentValue, options, onChanged);
       },
-      backgroundColor: Colors.grey[200],
+      backgroundColor: Colors.white,
       selectedColor: Colors.blue[100],
       checkmarkColor: const Color(0xFF2E3192),
     );
@@ -137,7 +148,7 @@ class OrderManagement extends StatelessWidget {
         ),
         selected: hasDateFilter,
         onSelected: (_) => _selectDateRange(controller),
-        backgroundColor: Colors.grey[200],
+        backgroundColor: Colors.white,
         selectedColor: Colors.blue[100],
         checkmarkColor: const Color(0xFF2E3192),
       );
@@ -263,7 +274,7 @@ class OrderManagement extends StatelessWidget {
                     border: Border.all(color: statusColor, width: 1),
                   ),
                   child: Text(
-                    data['status'] ?? 'N/A',
+                    data['order_status'] ?? 'N/A',
                     style: TextStyle(
                       color: statusColor,
                       fontSize: 12,
@@ -297,18 +308,6 @@ class OrderManagement extends StatelessWidget {
               '📞 ${data['phone1'] ?? 'N/A'}',
               style: const TextStyle(fontSize: 13),
             ),
-            // Text(
-            //   '📍 ${data['place'] ?? 'N/A'}',
-            //   style: const TextStyle(fontSize: 13),
-            // ),
-            // Text(
-            //   '📦 Product: ${data['productID'] ?? 'N/A'} (${data['nos'] ?? 'N/A'} items)',
-            //   style: const TextStyle(fontSize: 13),
-            // ),
-            // Text(
-            //   '📅 ${controller.formatDateShort(data['createdAt'])}',
-            //   style: const TextStyle(fontSize: 13),
-            // ),
           ],
         ),
         trailing: const Icon(Icons.arrow_forward_ios, size: 16),
@@ -342,63 +341,55 @@ class OrderManagement extends StatelessWidget {
   }
 
   Widget _buildListView(OrderListController controller) {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('Orders')
-          .orderBy('createdAt', descending: true)
-          .snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
+    return Obx(() {
+      if (controller.isLoading.value) {
+        return const Center(child: CircularProgressIndicator());
+      }
 
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const Center(child: Text('No orders available'));
-        }
+      if (controller.filteredItems.isEmpty && !controller.hasMore.value) {
+        return const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.search_off, size: 64, color: Colors.grey),
+              SizedBox(height: 16),
+              Text(
+                'No orders found',
+                style: TextStyle(fontSize: 18, color: Colors.grey),
+              ),
+              SizedBox(height: 8),
+              Text(
+                'Try adjusting your search or filters',
+                style: TextStyle(color: Colors.grey),
+              ),
+            ],
+          ),
+        );
+      }
 
-        return Obx(() {
-          List<Map<String, dynamic>> allItems = [];
-
-          for (var doc in snapshot.data!.docs) {
-            final data = doc.data() as Map<String, dynamic>;
-            if (controller.matchesFilters(data, 'Order')) {
-              allItems.add({...data, 'type': 'Order', 'docId': doc.id});
-            }
-          }
-
-          print('Total orders after filtering: ${allItems.length}');
-
-          if (allItems.isEmpty) {
+      return ListView.builder(
+        controller: controller.scrollController,
+        padding: const EdgeInsets.only(bottom: 16),
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount:
+            controller.filteredItems.length +
+            (controller.hasMore.value ? 1 : 0),
+        itemBuilder: (context, index) {
+          if (index == controller.filteredItems.length &&
+              controller.hasMore.value) {
             return const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.search_off, size: 64, color: Colors.grey),
-                  SizedBox(height: 16),
-                  Text(
-                    'No orders found',
-                    style: TextStyle(fontSize: 18, color: Colors.grey),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    'Try adjusting your search or filters',
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                ],
+              child: Padding(
+                padding: EdgeInsets.all(16.0),
+                child: CircularProgressIndicator(strokeWidth: 2),
               ),
             );
           }
 
-          return ListView.builder(
-            padding: const EdgeInsets.only(bottom: 16),
-            itemCount: allItems.length,
-            itemBuilder: (context, index) {
-              final item = allItems[index];
-              return _buildListTile(item, item['docId'], controller);
-            },
-          );
-        });
-      },
-    );
+          final item = controller.filteredItems[index];
+          return _buildListTile(item, item['docId'], controller);
+        },
+      );
+    });
   }
 }

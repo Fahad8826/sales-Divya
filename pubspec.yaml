@@ -48,6 +48,7 @@ dependencies:
   permission_handler: ^12.0.0+1
   geolocator: ^14.0.1
   geocoding: ^4.0.0
+  infinite_scroll_pagination: ^5.1.0
 
 dev_dependencies:
   flutter_test:

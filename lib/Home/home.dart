@@ -53,13 +53,6 @@ class Home extends StatelessWidget {
       actions: [
         IconButton(
           icon: const Icon(
-            Icons.notifications_outlined,
-            color: Color(0xFF64748B),
-          ),
-          onPressed: () {},
-        ),
-        IconButton(
-          icon: const Icon(
             Icons.account_circle,
             color: Color(0xFF3B82F6),
             size: 32,
@@ -366,15 +359,6 @@ class Home extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 12),
-                    Obx(
-                      () => Text(
-                        '${(controller.progressValue * 100).toStringAsFixed(1)}% of target',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF64748B),
-                        ),
-                      ),
-                    ),
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -431,7 +415,7 @@ class Home extends StatelessWidget {
         'subtitle': 'Manage your leads',
         'icon': 'assets/svg/lead_management.svg',
         'color': const Color(0xFF3B82F6),
-        'count': '24',
+        'count': '',
         'route': '/leadmanagment',
       },
       {
@@ -439,7 +423,7 @@ class Home extends StatelessWidget {
         'subtitle': 'Pending follow-ups',
         'icon': 'assets/svg/follow_up.svg',
         'color': const Color(0xFF3B82F6),
-        'count': '12',
+        'count': controller.totalLeads.toString(),
         'route': '/followup',
       },
       {
@@ -447,7 +431,7 @@ class Home extends StatelessWidget {
         'subtitle': 'Track orders',
         'icon': 'assets/svg/order_management.svg',
         'color': const Color(0xFF3B82F6),
-        'count': '8',
+        'count': controller.totalOrders.toString(),
         'route': '/ordermanagement',
       },
       {
@@ -455,7 +439,7 @@ class Home extends StatelessWidget {
         'subtitle': 'Customer feedback',
         'icon': 'assets/svg/review.svg',
         'color': const Color(0xFF3B82F6),
-        'count': '15',
+        'count': controller.totalPostSaleFollowUp.toString(),
         'route': '/review',
       },
       {
@@ -463,7 +447,7 @@ class Home extends StatelessWidget {
         'subtitle': 'Support tickets',
         'icon': 'assets/svg/complaint.svg',
         'color': const Color(0xFF3B82F6),
-        'count': '3',
+        'count': '',
         'route': '/complaint',
       },
     ];

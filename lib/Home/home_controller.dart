@@ -15,6 +15,7 @@ class HomeController extends GetxController {
 
   var totalLeads = 0.obs;
   var totalOrders = 0.obs;
+  var totalPostSaleFollowUp = 0.obs;
   var targetTotal = 100.obs; // set your own target
 
   // Location variables
@@ -157,34 +158,6 @@ class HomeController extends GetxController {
     isMenuOpen.value = !isMenuOpen.value;
   }
 
-  // Future<void> fetchCounts() async {
-  //   final userId = _auth.currentUser?.uid;
-  //   if (userId == null) {
-  //     print("User not logged in");
-  //     return;
-  //   }
-
-  //   try {
-  //     // Fetch Leads
-  //     final leadsSnapshot = await _firestore
-  //         .collection('Leads')
-  //         .where('salesmanID', isEqualTo: userId)
-  //         .get();
-  //     totalLeads.value = leadsSnapshot.size;
-
-  //     // Fetch Orders
-  //     final ordersSnapshot = await _firestore
-  //         .collection('Orders')
-  //         .where('salesmanID', isEqualTo: userId)
-  //         .get();
-  //     totalOrders.value = ordersSnapshot.size;
-
-  //     print("Fetched Leads: ${totalLeads.value}, Orders: ${totalOrders.value}");
-  //   } catch (e) {
-  //     print("Error fetching data: $e");
-  //   }
-  // }
-
   int get totalActivity => totalLeads.value + totalOrders.value;
 
   double get progressValue =>
@@ -232,8 +205,23 @@ class HomeController extends GetxController {
           .get();
       totalOrders.value = ordersSnapshot.size;
 
+      final PostSaleFollwUpSnapshot = await _firestore
+          .collection('Orders')
+          // .where('salesmanID', isEqualTo: userId)
+          .where('order_status', isEqualTo: 'delivered')
+          .where(
+            'createdAt',
+            isGreaterThanOrEqualTo: Timestamp.fromDate(firstDayOfMonth),
+          )
+          .where(
+            'createdAt',
+            isLessThan: Timestamp.fromDate(firstDayOfNextMonth),
+          )
+          .get();
+      totalPostSaleFollowUp.value = PostSaleFollwUpSnapshot.size;
+
       debugPrint(
-        "Fetched Monthly Leads: ${totalLeads.value}, Orders: ${totalOrders.value}",
+        "Fetched Monthly Leads: ${totalLeads.value}, Orders: ${totalOrders.value} , PostSaleFollowUp :${totalPostSaleFollowUp.value}",
       );
     } catch (e) {
       log("Error fetching monthly data: $e");

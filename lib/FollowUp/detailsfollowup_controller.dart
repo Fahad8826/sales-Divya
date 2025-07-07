@@ -290,92 +290,6 @@ class LeadDetailsController extends GetxController {
   }
   
 
-  // Future<void> placeOrder() async {
-  //   if (!formKey.currentState!.validate() || selectedMakerId.value == null) {
-  //     Get.snackbar('Error', 'Please fill all required fields correctly');
-  //     return;
-  //   }
-
-  //   try {
-  //     final querySnapshot = await _firestore
-  //         .collection('products')
-  //         .where('id', isEqualTo: selectedProductId.value)
-  //         .limit(1)
-  //         .get();
-
-  //     if (querySnapshot.docs.isEmpty) {
-  //       Get.snackbar('Error', 'Selected product not found');
-  //       return;
-  //     }
-
-  //     final productDoc = querySnapshot.docs.first;
-  //     final docId = productDoc.id;
-  //     final productId = productDoc['id'];
-  //     final currentStock = productDoc['stock'];
-
-  //     final orderedQuantity = int.tryParse(nosController.text) ?? 0;
-  //     if (orderedQuantity <= 0) {
-  //       Get.snackbar('Error', 'Invalid number of items ordered');
-  //       return;
-  //     }
-
-  //     // if (orderedQuantity > currentStock) {
-  //     //   Get.snackbar('Error', 'Not enough stock available');
-  //     //   return;
-  //     // }
-
-  //     // ✅ Update stock first
-  //     if (currentStock > 0) {
-  //       // Only subtract if stock is positive
-  //       final updatedStock = currentStock - orderedQuantity;
-  //       await _firestore.collection('products').doc(docId).update({
-  //         'stock': updatedStock,
-  //       });
-  //       // Update local product stock map as well
-  //       productStockMap[selectedProductId.value!] = updatedStock;
-  //     }
-
-  //     final newOrderId = await generateCustomOrderId();
-  //     final currentUser = FirebaseAuth.instance.currentUser;
-  //     if (currentUser == null) {
-  //       Get.snackbar('Error', 'User not logged in');
-  //       return;
-  //     }
-
-  //     final userId = currentUser.uid;
-
-  //     // ✅ Place the order
-  //     await _firestore.collection('Orders').add({
-  //       'orderId': newOrderId,
-  //       'name': nameController.text,
-  //       'place': placeController.text,
-  //       'address': addressController.text,
-  //       'phone1': phoneController.text,
-  //       'phone2': phone2Controller.text.isNotEmpty
-  //           ? phone2Controller.text
-  //           : null,
-  //       'productID': productId,
-  //       'nos': orderedQuantity,
-  //       'remark': remarkController.text.isNotEmpty
-  //           ? remarkController.text
-  //           : null,
-  //       'status': selectedStatus.value,
-  //       'makerId': selectedMakerId.value,
-  //       'followUpDate': followUpDate.value != null
-  //           ? Timestamp.fromDate(followUpDate.value!)
-  //           : null,
-  //       'salesmanID': userId,
-  //       'createdAt': Timestamp.now(),
-  //       'order_status': "pending",
-  //     });
-  //     await _firestore.collection('Leads').doc(docId).delete();
-  //     Get.snackbar('Success', 'Order placed successfully');
-  //     clearForm();
-  //     Navigator.of(Get.context!).pop();
-  //   } catch (e) {
-  //     Get.snackbar('Error', 'Error placing order: $e');
-  //   }
-  // }
   Future<void> placeOrder(String leadDocId) async {
   if (!formKey.currentState!.validate() || selectedMakerId.value == null) {
     Get.snackbar('Error', 'Please fill all required fields correctly');
@@ -549,41 +463,21 @@ class LeadDetailsController extends GetxController {
     return null;
   }
 
-  // String? validateBalance(String? value) {
-  //   if (value == null || value.isEmpty) return 'Balance is required';
-  //   final double? balance = double.tryParse(value);
-  //   if (balance == null || balance < 0) return 'Enter a valid non-negative number';
-  //   return null;
-  // }
 
-  //   Future<void> archiveDocument(BuildContext context) async {
-  //   try {
-  //     await _firestore
-  //         .collection(type == 'Lead' ? 'Leads' : 'Orders')
-  //         .doc(docId)
-  //         .update({'isArchived': true, 'archivedAt': Timestamp.now()});
 
-  //     data['isArchived'] = true;
-  //     data['archivedAt'] = Timestamp.now();
-  //     data.refresh();
+    Future<void> archiveDocument(String leadDocId) async {
+  try {
+    await _firestore.collection('Leads').doc(leadDocId).update({
+      'isArchived': true,
+    });
 
-  //     Get.snackbar(
-  //       'Success',
-  //       '${type} archived successfully',
-  //       backgroundColor: Colors.green,
-  //       colorText: Colors.white,
-  //       snackPosition: SnackPosition.BOTTOM,
-  //     );
-  //   } catch (e) {
-  //     Get.snackbar(
-  //       'Error',
-  //       'Error archiving ${type.toLowerCase()}: $e',
-  //       backgroundColor: Colors.red,
-  //       colorText: Colors.white,
-  //       snackPosition: SnackPosition.BOTTOM,
-  //     );
-  //   }
-  // }
+    Get.snackbar('Success', 'Lead archived successfully');
+    Navigator.of(Get.context!).pop(); // Optional: pop the screen after archiving
+  } catch (e) {
+    Get.snackbar('Error', 'Failed to archive lead: $e');
+  }
+}
+
 
 
   @override

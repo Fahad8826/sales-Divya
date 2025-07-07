@@ -7,8 +7,21 @@ import 'package:intl/intl.dart';
 class LeadListController extends GetxController {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
-
   final searchController = TextEditingController();
+
+  var items = <Map<String, dynamic>>[].obs; // Reactive list of all items
+  var filteredItems = <Map<String, dynamic>>[].obs; // Reactive filtered items
+  var isLoading = false.obs; // Reactive loading state
+  var page = 1.obs; // Reactive page counter
+  final int itemsPerPage = 20;
+  final ScrollController scrollController = ScrollController();
+
+  // Separate last documents for pagination
+  DocumentSnapshot? _lastLeadDocument;
+  DocumentSnapshot? _lastOrderDocument;
+
+  var _hasMoreLeads = true.obs;
+  var _hasMoreOrders = true.obs;
 
   // Reactive filter variables
   final _selectedType = 'All'.obs;
@@ -32,21 +45,31 @@ class LeadListController extends GetxController {
   String get selectedPlace => _selectedPlace.value;
   String get selectedProductNo => _selectedProductNo.value;
   DateTimeRange? get selectedDateRange => _selectedDateRange.value;
-  String get searchQuery => _searchQuery.value;
+  String get searchQuery => _searchQuery.value; // Fixed return type
   String? get currentUserId => _auth.currentUser?.uid;
 
   @override
   void onInit() {
     super.onInit();
     loadFilterOptions();
+    _loadInitialItems(); // Load initial items
+    scrollController.addListener(_onScroll);
 
-    // Debounce search query updates
-    debounce(_searchQuery, (_) {
-      // Trigger any action you want when user stops typing
-      print('Search query: ${_searchQuery.value}');
-      // If you are filtering displayed data, trigger UI update here
-      update(); // If using GetBuilder
-    }, time: Duration(milliseconds: 300));
+    // Debounce filter updates to refresh items
+    everAll(
+      [
+        _selectedType,
+        _selectedStatus,
+        _selectedPlace,
+        _selectedProductNo,
+        _selectedDateRange,
+        _searchQuery,
+      ],
+      (_) {
+        _resetPagination();
+        _loadInitialItems(); // Reload items with new filters
+      },
+    );
 
     // Listener for text changes to update searchQuery
     searchController.addListener(() {
@@ -54,9 +77,139 @@ class LeadListController extends GetxController {
     });
   }
 
+  void _resetPagination() {
+    page.value = 1;
+    items.clear();
+    filteredItems.clear();
+    _lastLeadDocument = null;
+    _lastOrderDocument = null;
+    _hasMoreLeads.value = true;
+    _hasMoreOrders.value = true;
+  }
+
+  void _onScroll() {
+    if (scrollController.position.pixels >=
+            scrollController.position.maxScrollExtent - 200 &&
+        !isLoading.value &&
+        (_hasMoreLeads.value || _hasMoreOrders.value)) {
+      _loadMoreItems(); // Load more items
+    }
+  }
+
+  Future<void> _loadInitialItems() async {
+    _resetPagination();
+    await _loadMoreItems();
+  }
+
+  Future<void> _loadMoreItems() async {
+    if (isLoading.value || currentUserId == null) return;
+
+    // Check if we have more data to load
+    if (!_hasMoreLeads.value && !_hasMoreOrders.value) return;
+
+    isLoading.value = true;
+
+    try {
+      List<Map<String, dynamic>> newItems = [];
+
+      // Query Leads if we have more leads to load
+      if (_hasMoreLeads.value) {
+        Query<Map<String, dynamic>> leadsQuery = _firestore
+            .collection('Leads')
+            .where('salesmanID', isEqualTo: currentUserId)
+            .orderBy('createdAt', descending: true)
+            .limit(itemsPerPage ~/ 2);
+
+        // Apply pagination for leads
+        if (_lastLeadDocument != null) {
+          leadsQuery = leadsQuery.startAfterDocument(_lastLeadDocument!);
+        }
+
+        final leadsSnapshot = await leadsQuery.get();
+
+        // Update has more leads flag
+        _hasMoreLeads.value = leadsSnapshot.docs.length == itemsPerPage ~/ 2;
+
+        // Update last document for leads
+        if (leadsSnapshot.docs.isNotEmpty) {
+          _lastLeadDocument = leadsSnapshot.docs.last;
+        }
+
+        // Process Leads
+        for (var doc in leadsSnapshot.docs) {
+          final data = doc.data();
+          data['id'] = doc.id;
+          data['type'] = 'Lead';
+          newItems.add(data);
+        }
+      }
+
+      // Query Orders if we have more orders to load
+      if (_hasMoreOrders.value) {
+        Query<Map<String, dynamic>> ordersQuery = _firestore
+            .collection('Orders')
+            .where('salesmanID', isEqualTo: currentUserId)
+            .orderBy('createdAt', descending: true)
+            .limit(itemsPerPage ~/ 2);
+
+        // Apply pagination for orders
+        if (_lastOrderDocument != null) {
+          ordersQuery = ordersQuery.startAfterDocument(_lastOrderDocument!);
+        }
+
+        final ordersSnapshot = await ordersQuery.get();
+
+        // Update has more orders flag
+        _hasMoreOrders.value = ordersSnapshot.docs.length == itemsPerPage ~/ 2;
+
+        // Update last document for orders
+        if (ordersSnapshot.docs.isNotEmpty) {
+          _lastOrderDocument = ordersSnapshot.docs.last;
+        }
+
+        // Process Orders
+        for (var doc in ordersSnapshot.docs) {
+          final data = doc.data();
+          data['id'] = doc.id;
+          data['type'] = 'Order';
+          newItems.add(data);
+        }
+      }
+
+      // Sort items by createdAt (newest first)
+      newItems.sort(
+        (a, b) => (b['createdAt'] as Timestamp).compareTo(
+          a['createdAt'] as Timestamp,
+        ),
+      );
+
+      // Update items
+      items.addAll(newItems);
+
+      // Apply filters to get filtered items
+      _applyFilters();
+
+      page.value++;
+    } catch (e) {
+      print('Error loading items: $e');
+      Get.snackbar('Error', 'Failed to load items: $e');
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  void _applyFilters() {
+    List<Map<String, dynamic>> filtered = items.where((item) {
+      return matchesFilters(item, item['type']);
+    }).toList();
+
+    filteredItems.assignAll(filtered);
+  }
+
   @override
   void onClose() {
     searchController.dispose();
+    scrollController.dispose();
     super.onClose();
   }
 
@@ -64,18 +217,23 @@ class LeadListController extends GetxController {
     try {
       isLoadingFilters.value = true;
 
-      final leadsSnapshot = await _firestore.collection('Leads').get();
-      final ordersSnapshot = await _firestore.collection('Orders').get();
+      final leadsSnapshot = await _firestore
+          .collection('Leads')
+          .where('salesmanID', isEqualTo: currentUserId)
+          .get();
+
+      final ordersSnapshot = await _firestore
+          .collection('Orders')
+          .where('salesmanID', isEqualTo: currentUserId)
+          .get();
 
       Set<String> statuses = {'All'};
       Set<String> places = {'All'};
       Set<String> productNos = {'All'};
 
+      // Process leads
       for (var doc in leadsSnapshot.docs) {
         final data = doc.data();
-        if (data['salesmanID'] != currentUserId)
-          continue; // Filter by current user
-
         if (data['status']?.toString().trim().isNotEmpty == true) {
           statuses.add(data['status'].toString().trim());
         }
@@ -87,10 +245,9 @@ class LeadListController extends GetxController {
         }
       }
 
+      // Process orders
       for (var doc in ordersSnapshot.docs) {
         final data = doc.data();
-        if (data['userId'] != currentUserId) continue; // Filter by current user
-
         if (data['status']?.toString().trim().isNotEmpty == true) {
           statuses.add(data['status'].toString().trim());
         }
@@ -105,14 +262,15 @@ class LeadListController extends GetxController {
       availableStatuses.assignAll(statuses.toList()..sort());
       availablePlaces.assignAll(places.toList()..sort());
       availableProductNos.assignAll(productNos.toList()..sort());
-
-      isLoadingFilters.value = false;
     } catch (e) {
       print('Error loading filter options: $e');
+      Get.snackbar('Error', 'Failed to load filter options');
+    } finally {
       isLoadingFilters.value = false;
     }
   }
 
+  // Utility methods for date formatting
   String formatDate(Timestamp? timestamp) {
     if (timestamp == null) return 'N/A';
     final date = timestamp.toDate();
@@ -125,30 +283,38 @@ class LeadListController extends GetxController {
     return DateFormat('dd MMM yyyy').format(date);
   }
 
+  // Filter matching logic
   bool matchesFilters(Map<String, dynamic> data, String type) {
-    if (currentUserId == null || data['salesmanID'] != currentUserId) {
-      return false;
-    }
+    // Check user ownership
+    if (currentUserId == null) return false;
 
+    final userField = type == 'Lead' ? 'salesmanID' : 'salesmanID';
+    if (data[userField] != currentUserId) return false;
+
+    // Type filter
     if (_selectedType.value != 'All' && _selectedType.value != type) {
       return false;
     }
 
+    // Status filter
     if (_selectedStatus.value != 'All') {
       final itemStatus = data['status']?.toString().trim() ?? '';
       if (itemStatus != _selectedStatus.value) return false;
     }
 
+    // Place filter
     if (_selectedPlace.value != 'All') {
       final itemPlace = data['place']?.toString().trim() ?? '';
       if (itemPlace != _selectedPlace.value) return false;
     }
 
+    // Product filter
     if (_selectedProductNo.value != 'All') {
       final itemProductID = data['productID']?.toString().trim() ?? '';
       if (itemProductID != _selectedProductNo.value) return false;
     }
 
+    // Date range filter
     if (_selectedDateRange.value != null && data['createdAt'] != null) {
       final createdDate = (data['createdAt'] as Timestamp).toDate();
       final startDate = DateTime(
@@ -169,25 +335,20 @@ class LeadListController extends GetxController {
       }
     }
 
+    // Search query filter
     if (_searchQuery.value.isNotEmpty) {
       final searchLower = _searchQuery.value.toLowerCase();
-      final name = (data['name'] ?? '').toString().toLowerCase();
-      final phone1 = (data['phone1'] ?? '').toString().toLowerCase();
-      final phone2 = (data['phone2'] ?? '').toString().toLowerCase();
-      final address = (data['address'] ?? '').toString().toLowerCase();
-      final place = (data['place'] ?? '').toString().toLowerCase();
-      final remark = (data['remark'] ?? '').toString().toLowerCase();
-      final leadId = (data['leadId'] ?? '').toString().toLowerCase();
-      final orderId = (data['orderId'] ?? '').toString().toLowerCase();
-
-      if (!name.contains(searchLower) &&
-          !phone1.contains(searchLower) &&
-          !phone2.contains(searchLower) &&
-          !address.contains(searchLower) &&
-          !place.contains(searchLower) &&
-          !remark.contains(searchLower) &&
-          !leadId.contains(searchLower) &&
-          !orderId.contains(searchLower)) {
+      final searchableFields = [
+        (data['name'] ?? '').toString().toLowerCase(),
+        (data['phone1'] ?? '').toString().toLowerCase(),
+        (data['phone2'] ?? '').toString().toLowerCase(),
+        (data['address'] ?? '').toString().toLowerCase(),
+        (data['place'] ?? '').toString().toLowerCase(),
+        (data['remark'] ?? '').toString().toLowerCase(),
+        (data['leadId'] ?? '').toString().toLowerCase(),
+        (data['orderId'] ?? '').toString().toLowerCase(),
+      ];
+      if (!searchableFields.any((field) => field.contains(searchLower))) {
         return false;
       }
     }
@@ -195,30 +356,12 @@ class LeadListController extends GetxController {
     return true;
   }
 
-  void setType(String value) {
-    _selectedType.value = value;
-    print('Type filter set to: $value');
-  }
-
-  void setStatus(String value) {
-    _selectedStatus.value = value;
-    print('Status filter set to: $value');
-  }
-
-  void setPlace(String value) {
-    _selectedPlace.value = value;
-    print('Place filter set to: $value');
-  }
-
-  void setProductNo(String value) {
-    _selectedProductNo.value = value;
-    print('ProductNo filter set to: $value');
-  }
-
-  void setDateRange(DateTimeRange? range) {
-    _selectedDateRange.value = range;
-    print('Date range filter set to: $range');
-  }
+  // Filter setters
+  void setType(String value) => _selectedType.value = value;
+  void setStatus(String value) => _selectedStatus.value = value;
+  void setPlace(String value) => _selectedPlace.value = value;
+  void setProductNo(String value) => _selectedProductNo.value = value;
+  void setDateRange(DateTimeRange? range) => _selectedDateRange.value = range;
 
   void clearAllFilters() {
     _selectedType.value = 'All';
@@ -228,10 +371,20 @@ class LeadListController extends GetxController {
     _selectedDateRange.value = null;
     _searchQuery.value = '';
     searchController.clear();
-    print('All filters cleared');
   }
 
-  void refreshFilterOptions() {
-    loadFilterOptions();
+  void refreshFilterOptions() => loadFilterOptions();
+
+  Future<void> refreshData() async {
+    await loadFilterOptions();
+    await _loadInitialItems();
   }
+
+  bool get hasActiveFilters =>
+      _selectedType.value != 'All' ||
+      _selectedStatus.value != 'All' ||
+      _selectedPlace.value != 'All' ||
+      _selectedProductNo.value != 'All' ||
+      _selectedDateRange.value != null ||
+      _searchQuery.value.isNotEmpty;
 }

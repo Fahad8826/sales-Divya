@@ -18,19 +18,10 @@ class _ReviewState extends State<Review> with TickerProviderStateMixin {
   Timer? _debounce;
 
   // Filter variables
-  String _selectedPeriod = '7 days';
   String _selectedStatus = 'All';
-  DateTimeRange? _customDateRange;
   String _searchQuery = '';
   bool _showFilters = false;
 
-  final List<String> _periodOptions = const [
-    '7 days',
-    '14 days',
-    '30 days',
-    '90 days',
-    'Custom',
-  ];
   final List<String> _statusOptions = const [
     'All',
     'Pending Review',
@@ -53,46 +44,12 @@ class _ReviewState extends State<Review> with TickerProviderStateMixin {
   }
 
   Future<List<Map<String, dynamic>>> _fetchFilteredOrders() async {
-    final today = DateTime.now();
     try {
-      // Build Firestore query with server-side filtering
+      // Build Firestore query - filter for delivered orders only
       Query<Map<String, dynamic>> query = _firestore
           .collection('Orders')
-          .where('deliveryDate', isNotEqualTo: null);
-
-      // Apply date range filter
-      DateTime periodStart;
-      DateTime periodEnd = today.subtract(const Duration(days: 7));
-      if (_selectedPeriod == 'Custom' && _customDateRange != null) {
-        periodStart = _customDateRange!.start;
-        periodEnd = _customDateRange!.end;
-      } else {
-        int daysBack;
-        switch (_selectedPeriod) {
-          case '14 days':
-            daysBack = 14;
-            break;
-          case '30 days':
-            daysBack = 30;
-            break;
-          case '90 days':
-            daysBack = 90;
-            break;
-          default:
-            daysBack = 7;
-        }
-        periodStart = today.subtract(Duration(days: daysBack + 7));
-      }
-
-      query = query
-          .where(
-            'deliveryDate',
-            isGreaterThanOrEqualTo: Timestamp.fromDate(periodStart),
-          )
-          .where(
-            'deliveryDate',
-            isLessThanOrEqualTo: Timestamp.fromDate(periodEnd),
-          );
+          .where('order_status', isEqualTo: 'delivered')
+          .orderBy('createdAt', descending: true);
 
       // Apply status filter
       if (_selectedStatus != 'All') {
@@ -120,10 +77,7 @@ class _ReviewState extends State<Review> with TickerProviderStateMixin {
         }).toList();
       }
 
-      // Sort by delivery date (most recent first)
-      filtered.sort(
-        (a, b) => (b['deliveryDate'] as Timestamp).compareTo(a['deliveryDate']),
-      );
+
       return filtered;
     } catch (e) {
       print('Error fetching orders: $e');
@@ -145,25 +99,6 @@ class _ReviewState extends State<Review> with TickerProviderStateMixin {
         _futureOrders = _fetchFilteredOrders();
       });
     });
-  }
-
-  Future<void> _selectCustomDateRange() async {
-    final picked = await showDateRangePicker(
-      context: context,
-      firstDate: DateTime.now().subtract(const Duration(days: 365)),
-      lastDate: DateTime.now().subtract(const Duration(days: 7)),
-      initialDateRange: _customDateRange,
-      helpText: 'Select Date Range for Follow-up',
-      confirmText: 'Apply',
-      cancelText: 'Cancel',
-    );
-
-    if (picked != null) {
-      setState(() {
-        _customDateRange = picked;
-        _refreshData();
-      });
-    }
   }
 
   @override
@@ -189,30 +124,16 @@ class _ReviewState extends State<Review> with TickerProviderStateMixin {
         ],
         bottom: _showFilters
             ? PreferredSize(
-                preferredSize: const Size.fromHeight(180),
+                preferredSize: const Size.fromHeight(80),
                 child: _FilterSection(
-                  selectedPeriod: _selectedPeriod,
                   selectedStatus: _selectedStatus,
-                  periodOptions: _periodOptions,
                   statusOptions: _statusOptions,
-                  customDateRange: _customDateRange,
-                  onPeriodChanged: (value) {
-                    setState(() {
-                      _selectedPeriod = value!;
-                      if (value == 'Custom') {
-                        _selectCustomDateRange();
-                      } else {
-                        _refreshData();
-                      }
-                    });
-                  },
                   onStatusChanged: (value) {
                     setState(() {
                       _selectedStatus = value!;
                       _refreshData();
                     });
                   },
-                  onDateRangeChanged: _selectCustomDateRange,
                 ),
               )
             : null,
@@ -288,24 +209,14 @@ class _ReviewState extends State<Review> with TickerProviderStateMixin {
 
 // Extracted Widgets for Better Maintainability
 class _FilterSection extends StatelessWidget {
-  final String selectedPeriod;
   final String selectedStatus;
-  final List<String> periodOptions;
   final List<String> statusOptions;
-  final DateTimeRange? customDateRange;
-  final ValueChanged<String?> onPeriodChanged;
   final ValueChanged<String?> onStatusChanged;
-  final VoidCallback onDateRangeChanged;
 
   const _FilterSection({
-    required this.selectedPeriod,
     required this.selectedStatus,
-    required this.periodOptions,
     required this.statusOptions,
-    this.customDateRange,
-    required this.onPeriodChanged,
     required this.onStatusChanged,
-    required this.onDateRangeChanged,
   });
 
   @override
@@ -316,107 +227,24 @@ class _FilterSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Period',
-                      style: TextStyle(fontWeight: FontWeight.w500),
-                    ),
-                    const SizedBox(height: 8),
-                    DropdownButtonFormField<String>(
-                      value: selectedPeriod,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.all(Radius.circular(8)),
-                        ),
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                      ),
-                      items: periodOptions
-                          .map(
-                            (period) => DropdownMenuItem(
-                              value: period,
-                              child: Text(period),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: onPeriodChanged,
-                    ),
-                  ],
-                ),
+          const Text('Status', style: TextStyle(fontWeight: FontWeight.w500)),
+          const SizedBox(height: 8),
+          DropdownButtonFormField<String>(
+            value: selectedStatus,
+            decoration: const InputDecoration(
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.all(Radius.circular(8)),
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Status',
-                      style: TextStyle(fontWeight: FontWeight.w500),
-                    ),
-                    const SizedBox(height: 8),
-                    DropdownButtonFormField<String>(
-                      value: selectedStatus,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.all(Radius.circular(8)),
-                        ),
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                      ),
-                      items: statusOptions
-                          .map(
-                            (status) => DropdownMenuItem(
-                              value: status,
-                              child: Text(status),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: onStatusChanged,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          if (selectedPeriod == 'Custom' && customDateRange != null) ...[
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.blue[50],
-                borderRadius: const BorderRadius.all(Radius.circular(8)),
-                border: Border.all(color: Colors.blue[200]!),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.date_range, size: 20, color: Colors.blue[600]),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Range: ${DateFormat('dd/MM/yyyy').format(customDateRange!.start)} - ${DateFormat('dd/MM/yyyy').format(customDateRange!.end)}',
-                      style: TextStyle(
-                        color: Colors.blue[800],
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: onDateRangeChanged,
-                    child: const Text('Change'),
-                  ),
-                ],
-              ),
+              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             ),
-          ],
+            items: statusOptions
+                .map(
+                  (status) =>
+                      DropdownMenuItem(value: status, child: Text(status)),
+                )
+                .toList(),
+            onChanged: onStatusChanged,
+          ),
         ],
       ),
     );
@@ -508,13 +336,6 @@ class _EmptyWidget extends StatelessWidget {
             emptyMessage,
             style: const TextStyle(fontSize: 18, color: Colors.grey),
           ),
-          if (tabIndex == 0) ...[
-            const SizedBox(height: 8),
-            const Text(
-              'Try adjusting your filters',
-              style: TextStyle(color: Colors.grey),
-            ),
-          ],
         ],
       ),
     );
@@ -546,7 +367,10 @@ class _OrderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final deliveryDate = (order['deliveryDate'] as Timestamp).toDate();
+    // Safely handle deliveryDate
+    final deliveryDate = order['deliveryDate'] is Timestamp
+        ? (order['deliveryDate'] as Timestamp).toDate()
+        : DateTime.now(); // Fallback to current date if null
     final formattedDate = DateFormat('dd MMM yyyy').format(deliveryDate);
     final daysSinceDelivery = DateTime.now().difference(deliveryDate).inDays;
     final reviewStatus = order['reviewStatus'] ?? 'Pending Review';
@@ -650,32 +474,37 @@ class _OrderCard extends StatelessWidget {
                   Icon(Icons.local_shipping, size: 16, color: Colors.grey[500]),
                   const SizedBox(width: 8),
                   Text(
-                    'Delivered: $formattedDate',
+                    order['deliveryDate'] != null
+                        ? 'Delivered: $formattedDate'
+                        : 'Delivery Date: Not Available',
                     style: const TextStyle(fontSize: 13, color: Colors.grey),
                   ),
                   const Spacer(),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: daysSinceDelivery > 14
-                          ? Colors.red[50]
-                          : Colors.blue[50],
-                      borderRadius: const BorderRadius.all(Radius.circular(8)),
-                    ),
-                    child: Text(
-                      '$daysSinceDelivery days ago',
-                      style: TextStyle(
-                        fontSize: 12,
+                  if (order['deliveryDate'] != null)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
                         color: daysSinceDelivery > 14
-                            ? Colors.red[700]
-                            : Colors.blue[700],
-                        fontWeight: FontWeight.w500,
+                            ? Colors.red[50]
+                            : Colors.blue[50],
+                        borderRadius: const BorderRadius.all(
+                          Radius.circular(8),
+                        ),
+                      ),
+                      child: Text(
+                        '$daysSinceDelivery days ago',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: daysSinceDelivery > 14
+                              ? Colors.red
+                              : Colors.blue,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
-                  ),
                 ],
               ),
             ],

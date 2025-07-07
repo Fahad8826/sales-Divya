@@ -1,11 +1,9 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:sales/Lead/lead_list_controller.dart';
 import 'package:sales/Home/home.dart';
 import 'package:sales/Lead/individual_details.dart';
-import 'package:rxdart/rxdart.dart' as rxdart;
 
 class LeadList extends StatelessWidget {
   const LeadList({super.key});
@@ -21,6 +19,12 @@ class LeadList extends StatelessWidget {
       },
       child: Scaffold(
         appBar: AppBar(
+          leading: IconButton(
+            onPressed: () {
+              Get.off(() => Home());
+            },
+            icon: Icon(Icons.arrow_back, color: Colors.white),
+          ),
           title: const Text('Leads & Orders'),
           centerTitle: true,
           backgroundColor: Color(0xFF3B82F6),
@@ -29,7 +33,17 @@ class LeadList extends StatelessWidget {
           actions: [
             IconButton(
               icon: const Icon(Icons.refresh),
-              onPressed: () => controller.refreshFilterOptions(),
+              onPressed: () => controller.refreshData(),
+            ),
+            Obx(
+              () =>
+                  controller
+                      .hasActiveFilters // Remove .value
+                  ? IconButton(
+                      icon: const Icon(Icons.filter_alt_off),
+                      onPressed: () => controller.clearAllFilters(),
+                    )
+                  : SizedBox.shrink(),
             ),
           ],
         ),
@@ -55,11 +69,22 @@ class LeadList extends StatelessWidget {
       ),
       child: TextField(
         controller: controller.searchController,
-        decoration: const InputDecoration(
+        decoration: InputDecoration(
           hintText: 'Search by name, phone, address, ID...',
           prefixIcon: Icon(Icons.search, color: Colors.grey),
           border: InputBorder.none,
           contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          suffixIcon: Obx(
+            () =>
+                controller
+                    .searchQuery
+                    .isNotEmpty // Remove .value
+                ? IconButton(
+                    icon: Icon(Icons.clear, color: Colors.grey),
+                    onPressed: () => controller.clearAllFilters(),
+                  )
+                : SizedBox.shrink(),
+          ),
         ),
       ),
     );
@@ -70,11 +95,9 @@ class LeadList extends StatelessWidget {
       height: 60,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Obx(() {
-        // Show loading indicator while filters are loading
         if (controller.isLoadingFilters.value) {
           return const Center(child: CircularProgressIndicator(strokeWidth: 2));
         }
-
         return ListView(
           scrollDirection: Axis.horizontal,
           children: [
@@ -129,11 +152,8 @@ class LeadList extends StatelessWidget {
     return FilterChip(
       label: Text('$label: $currentValue'),
       selected: currentValue != 'All',
-      onSelected: (_) {
-        // Add debug print
-        print('Opening filter dialog for $label with options: $options');
-        _showFilterDialog(label, currentValue, options, onChanged);
-      },
+      onSelected: (_) =>
+          _showFilterDialog(label, currentValue, options, onChanged),
       backgroundColor: Colors.grey[200],
       selectedColor: Colors.blue[100],
       checkmarkColor: Colors.blue[700],
@@ -160,16 +180,8 @@ class LeadList extends StatelessWidget {
 
   Widget _buildClearFiltersChip(LeadListController controller) {
     return Obx(() {
-      final hasActiveFilters =
-          controller.selectedType != 'All' ||
-          controller.selectedStatus != 'All' ||
-          controller.selectedPlace != 'All' ||
-          controller.selectedProductNo != 'All' ||
-          controller.selectedDateRange != null ||
-          controller.searchQuery.isNotEmpty;
-
-      if (!hasActiveFilters) return const SizedBox.shrink();
-
+      if (!controller.hasActiveFilters)
+        return const SizedBox.shrink(); // Remove .value
       return ActionChip(
         label: const Text('Clear All'),
         onPressed: controller.clearAllFilters,
@@ -185,9 +197,6 @@ class LeadList extends StatelessWidget {
     List<String> options,
     Function(String) onChanged,
   ) {
-    // Debug print
-    print('Showing filter dialog for $title with ${options.length} options');
-
     Get.dialog(
       AlertDialog(
         title: Text('Filter by $title'),
@@ -210,7 +219,6 @@ class LeadList extends StatelessWidget {
                         value: option,
                         groupValue: currentValue,
                         onChanged: (value) {
-                          print('Selected filter option: $value');
                           onChanged(value!);
                           Get.back();
                         },
@@ -240,6 +248,51 @@ class LeadList extends StatelessWidget {
     }
   }
 
+  Widget _buildListView(LeadListController controller) {
+    return Obx(() {
+      if (controller.filteredItems.isEmpty && !controller.isLoading.value) {
+        return const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.search_off, size: 64, color: Colors.grey),
+              SizedBox(height: 16),
+              Text(
+                'No items found',
+                style: TextStyle(fontSize: 18, color: Colors.grey),
+              ),
+              SizedBox(height: 8),
+              Text(
+                'Try adjusting your search or filters',
+                style: TextStyle(color: Colors.grey),
+              ),
+            ],
+          ),
+        );
+      }
+
+      return ListView.builder(
+        controller: controller.scrollController,
+        padding: const EdgeInsets.only(bottom: 16),
+        itemCount:
+            controller.filteredItems.length +
+            (controller.isLoading.value ? 1 : 0),
+        itemBuilder: (context, index) {
+          if (index == controller.filteredItems.length) {
+            return const Center(
+              child: Padding(
+                padding: EdgeInsets.all(16.0),
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            );
+          }
+          final item = controller.filteredItems[index];
+          return _buildListTile(item, item['type'], item['id'], controller);
+        },
+      );
+    });
+  }
+
   Widget _buildListTile(
     Map<String, dynamic> data,
     String type,
@@ -247,94 +300,188 @@ class LeadList extends StatelessWidget {
     LeadListController controller,
   ) {
     final statusColor = _getStatusColor(data['status']);
+    final isLead = type == 'Lead';
 
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      child: ListTile(
-        contentPadding: const EdgeInsets.all(16),
-        leading: CircleAvatar(
-          backgroundColor: type == 'Lead'
-              ? Colors.orange[100]
-              : Colors.green[100],
-          child: Icon(
-            type == 'Lead' ? Icons.person_add : Icons.shopping_cart,
-            color: type == 'Lead' ? Colors.orange[700] : Colors.green[700],
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      elevation: 3,
+      shadowColor: Colors.black.withOpacity(0.1),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: InkWell(
+        onTap: () => _navigateToDetails(data, type, docId),
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: isLead ? Colors.orange[50] : Colors.green[50],
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      isLead
+                          ? Icons.person_add_outlined
+                          : Icons.shopping_cart_outlined,
+                      color: isLead ? Colors.orange[600] : Colors.green[600],
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          data['name'] ?? 'No Name',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          controller.formatDateShort(data['createdAt']),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: statusColor.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: statusColor.withOpacity(0.3),
+                            width: 1,
+                          ),
+                        ),
+                        child: Text(
+                          data['status'] ?? 'N/A',
+                          style: TextStyle(
+                            color: statusColor,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isLead
+                              ? Colors.orange[100]
+                              : Colors.green[100],
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          type,
+                          style: TextStyle(
+                            color: isLead
+                                ? Colors.orange[700]
+                                : Colors.green[700],
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey[50],
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  children: [
+                    _buildInfoRow(
+                      icon: Icons.phone_outlined,
+                      iconColor: Colors.blue[600]!,
+                      label: 'Phone',
+                      value: data['phone1'] ?? 'N/A',
+                    ),
+                    const SizedBox(height: 8),
+                    _buildInfoRow(
+                      icon: Icons.location_on_outlined,
+                      iconColor: Colors.red[600]!,
+                      label: 'Location',
+                      value: data['place'] ?? 'N/A',
+                    ),
+                    const SizedBox(height: 8),
+                    _buildInfoRow(
+                      icon: Icons.inventory_2_outlined,
+                      iconColor: Colors.purple[600]!,
+                      label: 'Product',
+                      value:
+                          '${data['productID'] ?? 'N/A'} (${data['nos'] ?? 'N/A'} items)',
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
-        title: Text(
-          data['name'] ?? 'No Name',
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: statusColor, width: 1),
-                  ),
-                  child: Text(
-                    data['status'] ?? 'N/A',
-                    style: TextStyle(
-                      color: statusColor,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.blue[50],
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    type,
-                    style: TextStyle(
-                      color: Colors.blue[700],
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Text(
-              '📞 ${data['phone1'] ?? 'N/A'}',
-              style: const TextStyle(fontSize: 13),
-            ),
-            Text(
-              '📍 ${data['place'] ?? 'N/A'}',
-              style: const TextStyle(fontSize: 13),
-            ),
-            Text(
-              '📦 Product: ${data['productID'] ?? 'N/A'} (${data['nos'] ?? 'N/A'} items)',
-              style: const TextStyle(fontSize: 13),
-            ),
-            Text(
-              '📅 ${controller.formatDateShort(data['createdAt'])}',
-              style: const TextStyle(fontSize: 13),
-            ),
-          ],
-        ),
-        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-        onTap: () => _navigateToDetails(data, type, docId),
       ),
+    );
+  }
+
+  Widget _buildInfoRow({
+    required IconData icon,
+    required Color iconColor,
+    required String label,
+    required String value,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 16, color: iconColor),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: Colors.black87,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -360,102 +507,5 @@ class LeadList extends StatelessWidget {
     String docId,
   ) {
     Get.to(() => DetailPage(data: data, type: type, docId: docId));
-  }
-
-  Widget _buildListView(LeadListController controller) {
-    return StreamBuilder<List<QuerySnapshot>>(
-      stream:
-          rxdart.Rx.combineLatest2<
-            QuerySnapshot,
-            QuerySnapshot,
-            List<QuerySnapshot>
-          >(
-            FirebaseFirestore.instance
-                .collection('Leads')
-                .orderBy('createdAt', descending: true)
-                .snapshots(),
-            FirebaseFirestore.instance
-                .collection('Orders')
-                .orderBy('createdAt', descending: true)
-                .snapshots(),
-            (leadsSnapshot, ordersSnapshot) => [leadsSnapshot, ordersSnapshot],
-          ),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        if (!snapshot.hasData) {
-          return const Center(child: Text('No data available'));
-        }
-
-        return Obx(() {
-          // Combine and filter data
-          List<Map<String, dynamic>> allItems = [];
-
-          // Add leads
-          for (var doc in snapshot.data![0].docs) {
-            final data = doc.data() as Map<String, dynamic>;
-            if (controller.matchesFilters(data, 'Lead')) {
-              allItems.add({...data, 'type': 'Lead', 'docId': doc.id});
-            }
-          }
-
-          // Add orders
-          for (var doc in snapshot.data![1].docs) {
-            final data = doc.data() as Map<String, dynamic>;
-            if (controller.matchesFilters(data, 'Order')) {
-              allItems.add({...data, 'type': 'Order', 'docId': doc.id});
-            }
-          }
-
-          // Sort by creation date (newest first)
-          allItems.sort((a, b) {
-            final aDate = a['createdAt'] as Timestamp?;
-            final bDate = b['createdAt'] as Timestamp?;
-            if (aDate == null || bDate == null) return 0;
-            return bDate.compareTo(aDate);
-          });
-
-          // Debug print
-          print('Total items after filtering: ${allItems.length}');
-
-          if (allItems.isEmpty) {
-            return const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.search_off, size: 64, color: Colors.grey),
-                  SizedBox(height: 16),
-                  Text(
-                    'No items found',
-                    style: TextStyle(fontSize: 18, color: Colors.grey),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    'Try adjusting your search or filters',
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          return ListView.builder(
-            padding: const EdgeInsets.only(bottom: 16),
-            itemCount: allItems.length,
-            itemBuilder: (context, index) {
-              final item = allItems[index];
-              return _buildListTile(
-                item,
-                item['type'],
-                item['docId'],
-                controller,
-              );
-            },
-          );
-        });
-      },
-    );
   }
 }

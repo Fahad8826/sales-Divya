@@ -20,7 +20,11 @@ class OrderManagement extends StatelessWidget {
       },
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Order Management'),
+          title: const Text('Order Management',  style: TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: 18,
+            color: Colors.white,
+          ),),
           centerTitle: true,
           backgroundColor: Color(0xFF3B82F6),
           foregroundColor: Colors.white,

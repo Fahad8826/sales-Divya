@@ -46,7 +46,7 @@ class Complaint extends StatelessWidget {
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [Colors.indigo.shade600, Colors.indigo.shade800],
+                      colors: [Colors.blue.shade600, Colors.blue.shade800],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),

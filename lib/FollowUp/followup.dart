@@ -76,11 +76,6 @@ class FollowupPage extends StatelessWidget {
           return _isFollowUpToday(data['followUpDate']);
         }).length;
 
-        final hot = leads.where((doc) {
-          final data = doc.data() as Map<String, dynamic>;
-          return data['status']?.toString().toLowerCase() == 'hot';
-        }).length;
-
         return SizedBox(
           height: cardHeight,
           child: Row(
@@ -102,18 +97,6 @@ class FollowupPage extends StatelessWidget {
                   'Today',
                   today.toString(),
                   Icons.today,
-                  Colors.blue[600]!,
-                  Colors.blue[50]!,
-                  cardPadding,
-                  isTablet,
-                ),
-              ),
-              SizedBox(width: size.width * 0.02),
-              Expanded(
-                child: _buildSummaryCard(
-                  'Hot Leads',
-                  hot.toString(),
-                  Icons.local_fire_department,
                   Colors.blue[600]!,
                   Colors.blue[50]!,
                   cardPadding,
@@ -550,49 +533,61 @@ class FollowupPage extends StatelessWidget {
     List<String> options,
     Function(String) onChanged,
   ) {
-    Get.dialog(
-      AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          'Filter by $title',
-          style: const TextStyle(fontWeight: FontWeight.w600),
+    Get.bottomSheet(
+      Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
         ),
-        content: SizedBox(
-          width: double.minPositive,
-          child: ListView.builder(
-            shrinkWrap: true,
-            itemCount: options.length,
-            itemBuilder: (context, index) {
-              final option = options[index];
-              final isSelected = option == currentValue;
-              return Container(
-                margin: const EdgeInsets.symmetric(vertical: 2),
-                decoration: BoxDecoration(
-                  color: isSelected ? Colors.blue[50] : null,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: RadioListTile<String>(
-                  title: Text(
-                    option,
-                    style: TextStyle(
-                      fontWeight: isSelected
-                          ? FontWeight.w600
-                          : FontWeight.normal,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Text(
+                    'Filter by $title',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                  value: option,
-                  groupValue: currentValue,
-                  activeColor: Colors.blue[600],
-                  onChanged: (value) {
-                    onChanged(value!);
-                    Get.back();
-                  },
-                ),
-              );
-            },
-          ),
+                  const Spacer(),
+                  IconButton(
+                    onPressed: () => Get.back(),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+            ),
+            Divider(height: 1, color: Colors.grey[200]),
+            Flexible(
+              child: ListView.builder(
+                shrinkWrap: true,
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                itemCount: options.length,
+                itemBuilder: (context, index) {
+                  final option = options[index];
+                  final isSelected = option == currentValue;
+
+                  return ListTile(
+                    title: Text(option),
+                    trailing: isSelected
+                        ? Icon(Icons.check, color: Colors.blue[600])
+                        : null,
+                    onTap: () {
+                      onChanged(option);
+                      Get.back();
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
         ),
       ),
+      isScrollControlled: true,
     );
   }
 
@@ -636,6 +631,210 @@ class FollowupPage extends StatelessWidget {
     }
   }
 
+  // Widget _buildListTile(
+  //   BuildContext context,
+  //   Map<String, dynamic> data,
+  //   String docId,
+  //   FollowupController controller,
+  //   Size size,
+  //   bool isTablet,
+  // ) {
+  //   final bool isOverdue = _isFollowUpOverdue(data['followUpDate']);
+  //   final bool isToday = _isFollowUpToday(data['followUpDate']);
+  //   final avatarSize = isTablet ? 52.0 : 48.0;
+  //   final fontSize = isTablet ? 18.0 : 16.0;
+  //   final smallFontSize = isTablet ? 12.0 : 11.0;
+  //   final statusColor = isOverdue ? Colors.red : Colors.blue[600]!;
+
+  //   return Container(
+  //     margin: EdgeInsets.symmetric(
+  //       horizontal: size.width * 0.04,
+  //       vertical: size.height * 0.006,
+  //     ),
+  //     decoration: BoxDecoration(
+  //       color: Colors.white,
+  //       borderRadius: BorderRadius.circular(16),
+  //       boxShadow: [
+  //         BoxShadow(
+  //           color: Colors.black.withOpacity(0.05),
+  //           blurRadius: 8,
+  //           offset: const Offset(0, 2),
+  //         ),
+  //       ],
+  //       border: isOverdue
+  //           ? Border.all(color: Colors.red[300]!, width: 2)
+  //           : isToday
+  //           ? Border.all(color: Colors.blue[300]!, width: 2)
+  //           : null,
+  //     ),
+  //     child: Material(
+  //       color: Colors.transparent,
+  //       child: InkWell(
+  //         borderRadius: BorderRadius.circular(16),
+  //         onTap: () => Get.to(() => LeadDetailsPage(leadId: docId)),
+  //         child: Padding(
+  //           padding: EdgeInsets.all(size.width * 0.04),
+  //           child: Column(
+  //             children: [
+  //               Row(
+  //                 children: [
+  //                   Stack(
+  //                     children: [
+  //                       Container(
+  //                         width: avatarSize,
+  //                         height: avatarSize,
+  //                         decoration: BoxDecoration(
+  //                           gradient: LinearGradient(
+  //                             colors: [
+  //                               statusColor.withOpacity(0.7),
+  //                               statusColor,
+  //                             ],
+  //                           ),
+  //                           borderRadius: BorderRadius.circular(avatarSize / 2),
+  //                         ),
+  //                         child: Icon(
+  //                           Icons.person,
+  //                           color: Colors.white,
+  //                           size: avatarSize * 0.5,
+  //                         ),
+  //                       ),
+  //                       if (isOverdue || isToday)
+  //                         Positioned(
+  //                           top: -2,
+  //                           right: -2,
+  //                           child: Container(
+  //                             width: 16,
+  //                             height: 16,
+  //                             decoration: BoxDecoration(
+  //                               color: isOverdue ? Colors.red : Colors.blue,
+  //                               shape: BoxShape.circle,
+  //                               border: Border.all(
+  //                                 color: Colors.white,
+  //                                 width: 2,
+  //                               ),
+  //                             ),
+  //                             child: Icon(
+  //                               isOverdue ? Icons.warning : Icons.schedule,
+  //                               size: 8,
+  //                               color: Colors.white,
+  //                             ),
+  //                           ),
+  //                         ),
+  //                     ],
+  //                   ),
+  //                   SizedBox(width: size.width * 0.03),
+  //                   Expanded(
+  //                     child: Column(
+  //                       crossAxisAlignment: CrossAxisAlignment.start,
+  //                       children: [
+  //                         Text(
+  //                           data['name'] ?? 'Unknown Lead',
+  //                           style: TextStyle(
+  //                             fontSize: fontSize,
+  //                             fontWeight: FontWeight.bold,
+  //                             color: Colors.black87,
+  //                           ),
+  //                         ),
+  //                         SizedBox(height: size.height * 0.005),
+  //                         Container(
+  //                           padding: EdgeInsets.symmetric(
+  //                             horizontal: size.width * 0.02,
+  //                             vertical: size.height * 0.002,
+  //                           ),
+  //                           decoration: BoxDecoration(
+  //                             color: statusColor.withOpacity(0.1),
+  //                             borderRadius: BorderRadius.circular(12),
+  //                             border: Border.all(
+  //                               color: statusColor.withOpacity(0.3),
+  //                             ),
+  //                           ),
+  //                           child: Text(
+  //                             (data['status'] ?? 'Unknown').toUpperCase(),
+  //                             style: TextStyle(
+  //                               color: statusColor,
+  //                               fontSize: 10,
+  //                               fontWeight: FontWeight.w600,
+  //                               letterSpacing: 0.5,
+  //                             ),
+  //                           ),
+  //                         ),
+  //                       ],
+  //                     ),
+  //                   ),
+  //                   Container(
+  //                     padding: EdgeInsets.symmetric(
+  //                       horizontal: size.width * 0.02,
+  //                       vertical: size.height * 0.005,
+  //                     ),
+  //                     decoration: BoxDecoration(
+  //                       color: isOverdue
+  //                           ? Colors.red[50]
+  //                           : isToday
+  //                           ? Colors.blue[50]
+  //                           : Colors.grey[100],
+  //                       borderRadius: BorderRadius.circular(8),
+  //                       border: Border.all(
+  //                         color: isOverdue
+  //                             ? Colors.red[200]!
+  //                             : isToday
+  //                             ? Colors.blue[200]!
+  //                             : Colors.grey[300]!,
+  //                       ),
+  //                     ),
+  //                     child: Text(
+  //                       controller.formatDateShort(data['followUpDate']),
+  //                       style: TextStyle(
+  //                         fontSize: smallFontSize,
+  //                         fontWeight: FontWeight.w600,
+  //                         color: isOverdue
+  //                             ? Colors.red[700]
+  //                             : isToday
+  //                             ? Colors.blue[700]
+  //                             : Colors.grey[700],
+  //                       ),
+  //                     ),
+  //                   ),
+  //                 ],
+  //               ),
+  //               SizedBox(height: size.height * 0.015),
+  //               Row(
+  //                 children: [
+  //                   Expanded(
+  //                     child: _buildQuickInfo(
+  //                       Icons.phone,
+  //                       data['phone1'] ?? 'N/A',
+  //                       Colors.blue[600]!,
+  //                       size,
+  //                     ),
+  //                   ),
+  //                   SizedBox(width: size.width * 0.02),
+  //                   Expanded(
+  //                     child: _buildQuickInfo(
+  //                       Icons.location_on,
+  //                       data['place'] ?? 'N/A',
+  //                       Colors.blue[600]!,
+  //                       size,
+  //                     ),
+  //                   ),
+  //                   SizedBox(width: size.width * 0.02),
+  //                   Expanded(
+  //                     child: _buildQuickInfo(
+  //                       Icons.inventory,
+  //                       '${data['nos'] ?? '0'} items',
+  //                       Colors.blue[600]!,
+  //                       size,
+  //                     ),
+  //                   ),
+  //                 ],
+  //               ),
+  //             ],
+  //           ),
+  //         ),
+  //       ),
+  //     ),
+  //   );
+  // }
+
   Widget _buildListTile(
     BuildContext context,
     Map<String, dynamic> data,
@@ -646,39 +845,39 @@ class FollowupPage extends StatelessWidget {
   ) {
     final bool isOverdue = _isFollowUpOverdue(data['followUpDate']);
     final bool isToday = _isFollowUpToday(data['followUpDate']);
-    final avatarSize = isTablet ? 52.0 : 48.0;
-    final fontSize = isTablet ? 18.0 : 16.0;
-    final smallFontSize = isTablet ? 12.0 : 11.0;
+    final avatarSize = isTablet ? 36.0 : 32.0; // Reduced from 52/48
+    final fontSize = isTablet ? 15.0 : 14.0; // Reduced from 18/16
+    final smallFontSize = isTablet ? 11.0 : 10.0; // Reduced from 12/11
     final statusColor = isOverdue ? Colors.red : Colors.blue[600]!;
 
     return Container(
       margin: EdgeInsets.symmetric(
         horizontal: size.width * 0.04,
-        vertical: size.height * 0.006,
+        vertical: size.height * 0.003, // Reduced from 0.006
       ),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12), // Reduced from 16
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: Colors.black.withOpacity(0.03), // Reduced shadow
+            blurRadius: 4, // Reduced from 8
+            offset: const Offset(0, 1), // Reduced from (0, 2)
           ),
         ],
         border: isOverdue
-            ? Border.all(color: Colors.red[300]!, width: 2)
+            ? Border.all(color: Colors.red[300]!, width: 1.5) // Reduced from 2
             : isToday
-            ? Border.all(color: Colors.blue[300]!, width: 2)
+            ? Border.all(color: Colors.blue[300]!, width: 1.5) // Reduced from 2
             : null,
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           onTap: () => Get.to(() => LeadDetailsPage(leadId: docId)),
           child: Padding(
-            padding: EdgeInsets.all(size.width * 0.04),
+            padding: EdgeInsets.all(size.width * 0.025), // Reduced from 0.04
             child: Column(
               children: [
                 Row(
@@ -705,29 +904,29 @@ class FollowupPage extends StatelessWidget {
                         ),
                         if (isOverdue || isToday)
                           Positioned(
-                            top: -2,
-                            right: -2,
+                            top: -1,
+                            right: -1,
                             child: Container(
-                              width: 16,
-                              height: 16,
+                              width: 12, // Reduced from 16
+                              height: 12, // Reduced from 16
                               decoration: BoxDecoration(
                                 color: isOverdue ? Colors.red : Colors.blue,
                                 shape: BoxShape.circle,
                                 border: Border.all(
                                   color: Colors.white,
-                                  width: 2,
+                                  width: 1.5, // Reduced from 2
                                 ),
                               ),
                               child: Icon(
                                 isOverdue ? Icons.warning : Icons.schedule,
-                                size: 8,
+                                size: 6, // Reduced from 8
                                 color: Colors.white,
                               ),
                             ),
                           ),
                       ],
                     ),
-                    SizedBox(width: size.width * 0.03),
+                    SizedBox(width: size.width * 0.02), // Reduced from 0.03
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -739,16 +938,24 @@ class FollowupPage extends StatelessWidget {
                               fontWeight: FontWeight.bold,
                               color: Colors.black87,
                             ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          SizedBox(height: size.height * 0.005),
+                          SizedBox(
+                            height: size.height * 0.002,
+                          ), // Reduced from 0.005
                           Container(
                             padding: EdgeInsets.symmetric(
-                              horizontal: size.width * 0.02,
-                              vertical: size.height * 0.002,
+                              horizontal:
+                                  size.width * 0.015, // Reduced from 0.02
+                              vertical:
+                                  size.height * 0.001, // Reduced from 0.002
                             ),
                             decoration: BoxDecoration(
                               color: statusColor.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(
+                                8,
+                              ), // Reduced from 12
                               border: Border.all(
                                 color: statusColor.withOpacity(0.3),
                               ),
@@ -757,9 +964,9 @@ class FollowupPage extends StatelessWidget {
                               (data['status'] ?? 'Unknown').toUpperCase(),
                               style: TextStyle(
                                 color: statusColor,
-                                fontSize: 10,
+                                fontSize: 9, // Reduced from 10
                                 fontWeight: FontWeight.w600,
-                                letterSpacing: 0.5,
+                                letterSpacing: 0.3, // Reduced from 0.5
                               ),
                             ),
                           ),
@@ -768,8 +975,8 @@ class FollowupPage extends StatelessWidget {
                     ),
                     Container(
                       padding: EdgeInsets.symmetric(
-                        horizontal: size.width * 0.02,
-                        vertical: size.height * 0.005,
+                        horizontal: size.width * 0.015, // Reduced from 0.02
+                        vertical: size.height * 0.003, // Reduced from 0.005
                       ),
                       decoration: BoxDecoration(
                         color: isOverdue
@@ -777,7 +984,9 @@ class FollowupPage extends StatelessWidget {
                             : isToday
                             ? Colors.blue[50]
                             : Colors.grey[100],
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(
+                          6,
+                        ), // Reduced from 8
                         border: Border.all(
                           color: isOverdue
                               ? Colors.red[200]!
@@ -801,7 +1010,7 @@ class FollowupPage extends StatelessWidget {
                     ),
                   ],
                 ),
-                SizedBox(height: size.height * 0.015),
+                SizedBox(height: size.height * 0.008), // Reduced from 0.015
                 Row(
                   children: [
                     Expanded(
@@ -812,7 +1021,7 @@ class FollowupPage extends StatelessWidget {
                         size,
                       ),
                     ),
-                    SizedBox(width: size.width * 0.02),
+                    SizedBox(width: size.width * 0.015), // Reduced from 0.02
                     Expanded(
                       child: _buildQuickInfo(
                         Icons.location_on,
@@ -821,7 +1030,7 @@ class FollowupPage extends StatelessWidget {
                         size,
                       ),
                     ),
-                    SizedBox(width: size.width * 0.02),
+                    SizedBox(width: size.width * 0.015), // Reduced from 0.02
                     Expanded(
                       child: _buildQuickInfo(
                         Icons.inventory,
@@ -841,22 +1050,22 @@ class FollowupPage extends StatelessWidget {
   }
 
   Widget _buildQuickInfo(IconData icon, String text, Color color, Size size) {
-    final fontSize = size.width > 600 ? 12.0 : 11.0;
+    final fontSize = size.width > 600 ? 10.0 : 9.0; // Reduced from 12/11
 
     return Container(
       padding: EdgeInsets.symmetric(
-        vertical: size.height * 0.008,
-        horizontal: size.width * 0.02,
+        vertical: size.height * 0.005, // Reduced from 0.008
+        horizontal: size.width * 0.015, // Reduced from 0.02
       ),
       decoration: BoxDecoration(
         color: color.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(6), // Reduced from 8
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: color),
-          SizedBox(width: size.width * 0.01),
+          Icon(icon, size: 12, color: color), // Reduced from 14
+          SizedBox(width: size.width * 0.008), // Reduced from 0.01
           Expanded(
             child: Text(
               text,
@@ -872,6 +1081,39 @@ class FollowupPage extends StatelessWidget {
       ),
     );
   }
+
+  // Widget _buildQuickInfo(IconData icon, String text, Color color, Size size) {
+  //   final fontSize = size.width > 600 ? 12.0 : 11.0;
+
+  //   return Container(
+  //     padding: EdgeInsets.symmetric(
+  //       vertical: size.height * 0.008,
+  //       horizontal: size.width * 0.02,
+  //     ),
+  //     decoration: BoxDecoration(
+  //       color: color.withOpacity(0.08),
+  //       borderRadius: BorderRadius.circular(8),
+  //     ),
+  //     child: Row(
+  //       mainAxisSize: MainAxisSize.min,
+  //       children: [
+  //         Icon(icon, size: 14, color: color),
+  //         SizedBox(width: size.width * 0.01),
+  //         Expanded(
+  //           child: Text(
+  //             text,
+  //             style: TextStyle(
+  //               fontSize: fontSize,
+  //               color: color,
+  //               fontWeight: FontWeight.w500,
+  //             ),
+  //             overflow: TextOverflow.ellipsis,
+  //           ),
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
 
   bool _isFollowUpOverdue(dynamic followUpDate) {
     if (followUpDate == null) return false;
@@ -912,91 +1154,6 @@ class FollowupPage extends StatelessWidget {
     }
   }
 
-  //   Widget _buildListView(
-  //     FollowupController controller,
-  //     Size size,
-  //     bool isTablet,
-  //   ) {
-  //     return Obx(() {
-  //       final leads = controller.leads;
-
-  //       if (leads.isEmpty) {
-  //         return Center(
-  //           child: Column(
-  //             mainAxisAlignment: MainAxisAlignment.center,
-  //             children: [
-  //               Icon(Icons.person_search, size: 80, color: Colors.grey[400]),
-  //               const SizedBox(height: 16),
-  //               Text(
-  //                 'No leads available',
-  //                 style: TextStyle(
-  //                   fontSize: 18,
-  //                   fontWeight: FontWeight.w600,
-  //                   color: Colors.grey[600],
-  //                 ),
-  //               ),
-  //               const SizedBox(height: 8),
-  //               Text(
-  //                 'Start by adding your first lead',
-  //                 style: TextStyle(color: Colors.grey[500]),
-  //               ),
-  //             ],
-  //           ),
-  //         );
-  //       }
-
-  //       final filteredLeads = leads
-  //           .where(
-  //             (doc) =>
-  //                 controller.matchesFilters(doc.data() as Map<String, dynamic>),
-  //           )
-  //           .toList();
-  //       final sortedLeads = controller.sortLeadsByFollowUpDate(filteredLeads);
-
-  //       if (sortedLeads.isEmpty) {
-  //         return Center(
-  //           child: Column(
-  //             mainAxisAlignment: MainAxisAlignment.center,
-  //             children: [
-  //               Icon(Icons.search_off, size: 80, color: Colors.grey[400]),
-  //               const SizedBox(height: 16),
-  //               Text(
-  //                 'No leads found',
-  //                 style: TextStyle(
-  //                   fontSize: 18,
-  //                   fontWeight: FontWeight.w600,
-  //                   color: Colors.grey[600],
-  //                 ),
-  //               ),
-  //               const SizedBox(height: 8),
-  //               Text(
-  //                 'Try adjusting your search or filters',
-  //                 style: TextStyle(color: Colors.grey[500]),
-  //               ),
-  //             ],
-  //           ),
-  //         );
-  //       }
-
-  //       return ListView.builder(
-  //         padding: const EdgeInsets.symmetric(vertical: 8),
-  //         itemCount: sortedLeads.length,
-  //         itemBuilder: (context, index) {
-  //           final lead = sortedLeads[index];
-  //           final data = lead.data() as Map<String, dynamic>;
-  //           return _buildListTile(
-  //             context,
-  //             data,
-  //             lead.id,
-  //             controller,
-  //             size,
-  //             isTablet,
-  //           );
-  //         },
-  //       );
-  //     });
-  //   }
-  // }
   Widget _buildListView(
     FollowupController controller,
     Size size,

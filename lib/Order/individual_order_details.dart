@@ -99,67 +99,7 @@ class IndividualOrderDetails extends StatelessWidget {
     );
   }
 
-  // Future<void> _cancelOrder(BuildContext context) async {
-  //   try {
-  //     if (docId == null || docId.isEmpty) {
-  //       throw Exception("Order document ID is null or empty.");
-  //     }
 
-  //     if (data['productID'] == null || data['productID'].toString().isEmpty) {
-  //       throw Exception("Product ID (data['productID']) is null or empty.");
-  //     }
-
-  //     final orderRef = FirebaseFirestore.instance
-  //         .collection('Orders')
-  //         .doc(docId);
-
-  //     // Fetch product document by 'id' field using data['productID']
-  //     final productQuery = await FirebaseFirestore.instance
-  //         .collection('products')
-  //         .where('id', isEqualTo: data['productID'])
-  //         .limit(1)
-  //         .get();
-
-  //     if (productQuery.docs.isEmpty) {
-  //       throw Exception("Product with id '${data['productID']}' not found.");
-  //     }
-
-  //     final productRef = productQuery.docs.first.reference;
-
-  //     // Run transaction
-  //     await FirebaseFirestore.instance.runTransaction((transaction) async {
-  //       final orderSnapshot = await transaction.get(orderRef);
-  //       final productSnapshot = await transaction.get(productRef);
-
-  //       if (!orderSnapshot.exists || !productSnapshot.exists) {
-  //         throw Exception("Order or Product document does not exist.");
-  //       }
-
-  //       final currentNos = orderSnapshot['nos'] ?? 0;
-  //       final currentStock = productSnapshot['stock'] ?? 0;
-
-  //       transaction.update(orderRef, {'Cancel': true});
-  //       transaction.update(productRef, {'stock': currentStock + currentNos});
-  //     });
-
-  //     Get.snackbar(
-  //       'Order Cancelled',
-  //       'The order has been successfully cancelled and stock updated.',
-  //       backgroundColor: Colors.redAccent,
-  //       colorText: Colors.white,
-  //     );
-
-  //     Get.off(() => OrderManagement());
-  //   } catch (e) {
-  //     print('Error cancelling order: $e');
-  //     Get.snackbar(
-  //       'Error',
-  //       e.toString(),
-  //       backgroundColor: Colors.red,
-  //       colorText: Colors.white,
-  //     );
-  //   }
-  // }
 
   Future<void> _cancelOrder(BuildContext context) async {
     try {

@@ -184,9 +184,7 @@ class LeadList extends StatelessWidget {
         backgroundColor: Colors.white,
         selectedColor: Colors.blue[100],
         checkmarkColor: Colors.blue[700],
-         shape: RoundedRectangleBorder(
-    borderRadius: BorderRadius.circular(20),
-  ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       );
     });
   }
@@ -210,42 +208,61 @@ class LeadList extends StatelessWidget {
     List<String> options,
     Function(String) onChanged,
   ) {
-    Get.dialog(
-      AlertDialog(
-        title: Text('Filter by $title'),
-        content: SizedBox(
-          width: double.minPositive,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (options.isEmpty)
-                const Text('No options available')
-              else
-                Flexible(
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: options.length,
-                    itemBuilder: (context, index) {
-                      final option = options[index];
-                      return RadioListTile<String>(
-                        title: Text(option),
-                        value: option,
-                        groupValue: currentValue,
-                        onChanged: (value) {
-                          onChanged(value!);
-                          Get.back();
-                        },
-                      );
-                    },
-                  ),
-                ),
-            ],
-          ),
+    Get.bottomSheet(
+      Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
         ),
-        actions: [
-          TextButton(onPressed: () => Get.back(), child: const Text('Cancel')),
-        ],
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Text(
+                    'Filter by $title',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    onPressed: () => Get.back(),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+            ),
+            Divider(height: 1, color: Colors.grey[200]),
+            Flexible(
+              child: ListView.builder(
+                shrinkWrap: true,
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                itemCount: options.length,
+                itemBuilder: (context, index) {
+                  final option = options[index];
+                  final isSelected = option == currentValue;
+
+                  return ListTile(
+                    title: Text(option),
+                    trailing: isSelected
+                        ? Icon(Icons.check, color: Colors.blue[600])
+                        : null,
+                    onTap: () {
+                      onChanged(option);
+                      Get.back();
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
       ),
+      isScrollControlled: true,
     );
   }
 

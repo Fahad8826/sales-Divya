@@ -22,17 +22,11 @@ class _ReviewState extends State<Review> with TickerProviderStateMixin {
   String _searchQuery = '';
   bool _showFilters = false;
 
-  final List<String> _statusOptions = const [
-    'All',
-    'Pending Review',
-    'Reviewed',
-    'Follow-up Required',
-  ];
-
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    // Changed from 3 to 4 to match the number of tabs
+    _tabController = TabController(length: 4, vsync: this);
     _futureOrders = _fetchFilteredOrders();
   }
 
@@ -77,7 +71,6 @@ class _ReviewState extends State<Review> with TickerProviderStateMixin {
         }).toList();
       }
 
-
       return filtered;
     } catch (e) {
       print('Error fetching orders: $e');
@@ -114,29 +107,8 @@ class _ReviewState extends State<Review> with TickerProviderStateMixin {
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
-          IconButton(
-            icon: Icon(
-              _showFilters ? Icons.filter_list_off : Icons.filter_list,
-            ),
-            onPressed: () => setState(() => _showFilters = !_showFilters),
-          ),
           IconButton(icon: const Icon(Icons.refresh), onPressed: _refreshData),
         ],
-        bottom: _showFilters
-            ? PreferredSize(
-                preferredSize: const Size.fromHeight(80),
-                child: _FilterSection(
-                  selectedStatus: _selectedStatus,
-                  statusOptions: _statusOptions,
-                  onStatusChanged: (value) {
-                    setState(() {
-                      _selectedStatus = value!;
-                      _refreshData();
-                    });
-                  },
-                ),
-              )
-            : null,
       ),
       body: Column(
         children: [
@@ -150,10 +122,12 @@ class _ReviewState extends State<Review> with TickerProviderStateMixin {
               labelColor: Theme.of(context).primaryColor,
               unselectedLabelColor: Colors.grey[600],
               indicatorColor: Theme.of(context).primaryColor,
+              isScrollable: true, // Added this to handle 4 tabs better
               tabs: const [
                 Tab(text: 'All Orders'),
                 Tab(text: 'Pending'),
                 Tab(text: 'Completed'),
+                Tab(text: 'Follow-up Required'),
               ],
             ),
           ),
@@ -190,60 +164,26 @@ class _ReviewState extends State<Review> with TickerProviderStateMixin {
                       orders: orders
                           .where(
                             (o) =>
-                                (o['reviewStatus'] ?? 'Pending Review') !=
-                                'Pending Review',
+                                (o['reviewStatus'] ?? 'Pending Review') ==
+                                'Reviewed',
                           )
                           .toList(),
                       tabIndex: 2,
+                    ),
+                    _OrdersList(
+                      orders: orders
+                          .where(
+                            (o) =>
+                                (o['reviewStatus'] ?? 'Pending Review') ==
+                                'Follow-up Required',
+                          )
+                          .toList(),
+                      tabIndex: 3,
                     ),
                   ],
                 );
               },
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// Extracted Widgets for Better Maintainability
-class _FilterSection extends StatelessWidget {
-  final String selectedStatus;
-  final List<String> statusOptions;
-  final ValueChanged<String?> onStatusChanged;
-
-  const _FilterSection({
-    required this.selectedStatus,
-    required this.statusOptions,
-    required this.onStatusChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      color: Colors.white,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Status', style: TextStyle(fontWeight: FontWeight.w500)),
-          const SizedBox(height: 8),
-          DropdownButtonFormField<String>(
-            value: selectedStatus,
-            decoration: const InputDecoration(
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.all(Radius.circular(8)),
-              ),
-              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            ),
-            items: statusOptions
-                .map(
-                  (status) =>
-                      DropdownMenuItem(value: status, child: Text(status)),
-                )
-                .toList(),
-            onChanged: onStatusChanged,
           ),
         ],
       ),
@@ -323,6 +263,7 @@ class _EmptyWidget extends StatelessWidget {
     final emptyMessage = switch (tabIndex) {
       1 => 'No pending reviews',
       2 => 'No completed reviews',
+      3 => 'No follow-up required orders',
       _ => 'No orders found',
     };
 
@@ -514,3 +455,4 @@ class _OrderCard extends StatelessWidget {
     );
   }
 }
+// 

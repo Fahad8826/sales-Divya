@@ -456,6 +456,14 @@ class Home extends StatelessWidget {
         'count': () => '', // Static value
         'route': '/complaint',
       },
+      {
+        'title': 'Audio Tracking',
+        'subtitle': 'Tracking',
+        'icon': 'assets/svg/complaint.svg',
+        'color': const Color.fromARGB(255, 246, 59, 112),
+        'count': () => '', // Static value
+        'route': '/mic',
+      },
     ];
 
     return Column(

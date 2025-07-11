@@ -1,7 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 
 class SigninController extends GetxController {
   final emailOrPhoneController = TextEditingController();
@@ -32,43 +34,43 @@ class SigninController extends GetxController {
     return phoneRegex.hasMatch(phone);
   }
 
-  Future<String?> getEmailFromPhone(String phone) async {
-    try {
-      final query = await FirebaseFirestore.instance
-          .collection('users')
-          .where('phone', isEqualTo: phone)
-          .limit(1)
-          .get();
-      if (query.docs.isNotEmpty) {
-        return query.docs.first.get('email');
-      }
-    } catch (_) {}
-    return null;
+  Future<String> _getDeviceId() async {
+    final deviceInfo = DeviceInfoPlugin();
+    if (Platform.isAndroid) {
+      AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
+      return androidInfo.id;
+    } else if (Platform.isIOS) {
+      IosDeviceInfo iosInfo = await deviceInfo.iosInfo;
+      return iosInfo.identifierForVendor ?? 'unknown';
+    } else {
+      return 'unsupported';
+    }
   }
 
   Future<String?> signIn(String input, String password) async {
     try {
-      print("Attempting to sign in with input: $input"); // Debug log
+      print("Attempting to sign in with input: $input");
 
       String? email;
       String? uid;
 
-      // Check if input is an email or phone number
+      final currentDeviceId = await _getDeviceId(); // Get current device ID
+
+      // 📧 1. Resolve email
       if (_isValidEmail(input)) {
-        // Input is an email
         email = input;
       } else if (_isValidPhone(input)) {
-        // Input is a phone number, query Firestore to find matching email
-        QuerySnapshot query = await FirebaseFirestore.instance
+        final query = await FirebaseFirestore.instance
             .collection('users')
             .where('phone', isEqualTo: input)
             .limit(1)
             .get();
 
         if (query.docs.isNotEmpty) {
-          email = query.docs.first.get('email') as String;
-          uid = query.docs.first.get('uid') as String;
-          print("Found email for phone: $email"); // Debug log
+          final doc = query.docs.first;
+          email = doc.get('email');
+          uid = doc.get('uid');
+          print("Found email for phone: $email");
         } else {
           return 'No account found for this phone number.';
         }
@@ -76,42 +78,74 @@ class SigninController extends GetxController {
         return 'Invalid email or phone number format.';
       }
 
-      // Sign in with Firebase Auth using the email
-      UserCredential userCredential = await FirebaseAuth.instance
+      if (email == null) {
+        return 'Email not found.';
+      }
+
+      // 🔐 2. Firebase Authentication
+      final userCredential = await FirebaseAuth.instance
           .signInWithEmailAndPassword(email: email, password: password);
 
-      uid ??= userCredential.user!.uid;
-      print("Sign in successful, UID: $uid"); // Debug log
+      uid ??= userCredential.user?.uid;
 
-      // Verify Sales role in Firestore
-      DocumentSnapshot salesDoc = await FirebaseFirestore.instance
+      // 📄 3. Get Firestore user document
+      final userDocRef = FirebaseFirestore.instance
           .collection('users')
-          .doc(uid)
-          .get();
+          .doc(uid);
+      final userDoc = await userDocRef.get();
 
-      if (salesDoc.exists) {
-        Map<String, dynamic> saleData = salesDoc.data() as Map<String, dynamic>;
-
-        if (saleData['role'] == "salesmen") {
-          if (saleData['isActive'] == true) {
-            print("Salesperson login verified.");
-            return null; // Allow login
-          } else {
-            await FirebaseAuth.instance.signOut();
-            return 'Access denied. Your account is inactive.';
-          }
-        } else {
-          await FirebaseAuth.instance.signOut();
-          return 'Access denied. You are not a Sales.';
-        }
-      } else {
+      if (!userDoc.exists) {
         await FirebaseAuth.instance.signOut();
         return 'No SalesPerson record found.';
       }
+
+      final data = userDoc.data()!;
+      final role = data['role'];
+      final isActive = data['isActive'] ?? false;
+      final storedDeviceId = data['deviceId'];
+      final isLoggedIn = data['isLoggedIn'] ?? false;
+
+      // ❌ Check if not salesmen
+      if (role != "salesmen") {
+        await FirebaseAuth.instance.signOut();
+        return 'Access denied. You are not a Sales.';
+      }
+
+      // ❌ Check if inactive
+      if (!isActive) {
+        await FirebaseAuth.instance.signOut();
+        return 'Access denied. Your account is inactive.';
+      }
+
+      // 🔐 4. Enforce single device login
+      if (storedDeviceId == null || storedDeviceId == currentDeviceId) {
+        // ✅ First-time login or same device
+
+        await userDocRef.update({
+          'deviceId': currentDeviceId,
+          'isLoggedIn': true,
+          'lastLogin': FieldValue.serverTimestamp(),
+        });
+
+        print("✅ Login successful for $uid on device $currentDeviceId");
+        return null; // Success
+      } else {
+        // ❌ Different device
+        await FirebaseAuth.instance.signOut();
+        return 'Access denied. Already logged in on another device.';
+      }
     } on FirebaseAuthException catch (e) {
-      return e.message;
+      if (e.code == 'user-not-found') {
+        return 'No user found with this email or phone.';
+      } else if (e.code == 'wrong-password') {
+        return 'Incorrect password. Please try again.';
+      } else if (e.code == 'network-request-failed') {
+        return 'Network error. Please check your internet connection.';
+      } else {
+        return e.message ?? 'Firebase authentication failed.';
+      }
     } catch (e) {
-      return 'An unexpected error occurred: $e';
+      return 'Unexpected error: $e';
     }
   }
 

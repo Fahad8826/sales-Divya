@@ -49,6 +49,7 @@ dependencies:
   geolocator: ^14.0.1
   geocoding: ^4.0.0
   infinite_scroll_pagination: ^5.1.0
+  device_info_plus: ^11.5.0
 
 dev_dependencies:
   flutter_test:

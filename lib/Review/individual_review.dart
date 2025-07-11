@@ -422,7 +422,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         style: TextStyle(
           color: color,
           fontWeight: FontWeight.w600,
-          fontSize: isTablet ? 13 : 12,
+          fontSize: isTablet ? 10 : 8,
         ),
       ),
     );

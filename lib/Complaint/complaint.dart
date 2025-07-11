@@ -15,8 +15,13 @@ class Complaint extends StatelessWidget {
       appBar: AppBar(
         title: const Text(
           'Submit Complaint',
-          style: TextStyle(fontWeight: FontWeight.w600, color: Colors.white),
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: 18,
+            color: Colors.white,
+          ),
         ),
+        centerTitle: true,
         backgroundColor: Color(0xFF3B82F6),
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),

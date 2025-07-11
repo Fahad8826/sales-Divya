@@ -1,210 +1,3 @@
-// import 'package:flutter/material.dart';
-// import 'package:get/get.dart';
-// import 'package:sales/Auth/sign_in_controller.dart';
-// import 'package:sales/Home/home.dart';
-
-// class Signin extends StatelessWidget {
-//   final controller = Get.put(SigninController());
-
-//   Signin({super.key});
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       resizeToAvoidBottomInset: true,
-//       body: SingleChildScrollView(
-//         child: SizedBox(
-//           height: MediaQuery.of(context).size.height,
-//           child: Stack(
-//             children: [
-//               Positioned(
-//                 top: MediaQuery.of(context).size.height * -0.2,
-//                 right: 0,
-//                 left: 0,
-//                 child: Image.asset(
-//                   'assets/images/top_up.png',
-//                   fit: BoxFit.cover,
-//                   height: MediaQuery.of(context).size.height * 0.52,
-//                 ),
-//               ),
-//               Positioned(
-//                 top: MediaQuery.of(context).size.height * .08,
-//                 child: Image.asset(
-//                   'assets/images/logo.png',
-//                   fit: BoxFit.cover,
-//                   height: MediaQuery.of(context).size.height * 0.45,
-//                 ),
-//               ),
-//               Positioned(
-//                 top: MediaQuery.of(context).size.height * 0.38,
-//                 left: 30,
-//                 right: 30,
-//                 child: Column(
-//                   children: [
-//                     Text(
-//                       "Welcome Back",
-//                       style: TextStyle(
-//                         fontSize: MediaQuery.of(context).size.height * 0.035,
-//                         fontWeight: FontWeight.bold,
-//                         color: Color(0xFF030047),
-//                       ),
-//                     ),
-//                     SizedBox(height: 5),
-//                     Text(
-//                       "SALES",
-//                       style: TextStyle(
-//                         fontSize: MediaQuery.of(context).size.height * 0.025,
-//                         color: Color.fromARGB(255, 63, 97, 209),
-//                       ),
-//                     ),
-//                   ],
-//                 ),
-//               ),
-//               Positioned(
-//                 top: MediaQuery.of(context).size.height * 0.5,
-//                 left: 30,
-//                 right: 30,
-//                 child: TextField(
-//                   controller: controller.emailOrPhoneController,
-//                   decoration: InputDecoration(
-//                     suffixIcon: Icon(
-//                       Icons.email_outlined,
-//                       color: Color(0xFF030047),
-//                     ),
-//                     labelText: "Email or Phone Number",
-//                     labelStyle: TextStyle(
-//                       color: Color.fromARGB(255, 193, 204, 240),
-//                     ),
-//                     border: OutlineInputBorder(
-//                       borderRadius: BorderRadius.circular(30),
-//                     ),
-//                     enabledBorder: OutlineInputBorder(
-//                       borderRadius: BorderRadius.circular(30),
-//                       borderSide: BorderSide(
-//                         color: Colors.transparent,
-//                         width: 2,
-//                       ),
-//                     ),
-//                     focusedBorder: OutlineInputBorder(
-//                       borderRadius: BorderRadius.circular(30),
-//                       borderSide: BorderSide(
-//                         color: Color(0xFF030047),
-//                         width: 2,
-//                       ),
-//                     ),
-//                     filled: true,
-//                     fillColor: Color(0xFFE1E5F2),
-//                   ),
-//                 ),
-//               ),
-//               Positioned(
-//                 top: MediaQuery.of(context).size.height * 0.6,
-//                 left: 30,
-//                 right: 30,
-//                 child: Obx(
-//                   () => TextField(
-//                     controller: controller.passwordController,
-//                     obscureText: !controller.isPasswordVisible.value,
-//                     decoration: InputDecoration(
-//                       suffixIcon: IconButton(
-//                         icon: Icon(
-//                           controller.isPasswordVisible.value
-//                               ? Icons.visibility
-//                               : Icons.visibility_off,
-//                           color: Color(0xFF030047),
-//                         ),
-//                         onPressed: controller.togglePasswordVisibility,
-//                       ),
-//                       labelText: "Password",
-//                       labelStyle: TextStyle(
-//                         color: Color.fromARGB(255, 193, 204, 240),
-//                       ),
-//                       border: OutlineInputBorder(
-//                         borderRadius: BorderRadius.circular(30),
-//                       ),
-//                       enabledBorder: OutlineInputBorder(
-//                         borderRadius: BorderRadius.circular(30),
-//                         borderSide: BorderSide(
-//                           color: Colors.transparent,
-//                           width: 2,
-//                         ),
-//                       ),
-//                       focusedBorder: OutlineInputBorder(
-//                         borderRadius: BorderRadius.circular(30),
-//                         borderSide: BorderSide(
-//                           color: Color(0xFF030047),
-//                           width: 2,
-//                         ),
-//                       ),
-//                       filled: true,
-//                       fillColor: Color(0xFFE1E5F2),
-//                     ),
-//                   ),
-//                 ),
-//               ),
-
-//               Positioned(
-//                 bottom: MediaQuery.of(context).size.height * 0.22,
-//                 left: 30,
-//                 right: 30,
-//                 child: SizedBox(
-//                   height: MediaQuery.of(context).size.height * .07,
-//                   child: ElevatedButton(
-//                     style: ElevatedButton.styleFrom(
-//                       backgroundColor: Color(0xFFFFCC3E),
-//                     ),
-//                     onPressed: () async {
-//                       final input = controller.emailOrPhoneController.text
-//                           .trim();
-//                       final password = controller.passwordController.text
-//                           .trim();
-
-//                       if (input.isEmpty || password.isEmpty) {
-//                         Get.snackbar("Error", "Please fill in both fields");
-//                         return;
-//                       }
-
-//                       Get.dialog(
-//                         Center(child: CircularProgressIndicator()),
-//                         barrierDismissible: false,
-//                       );
-
-//                       final result = await controller.signIn(input, password);
-//                       Get.back();
-
-//                       if (result == null) {
-//                         // ✅ Clear fields after successful login
-//                         controller.emailOrPhoneController.clear();
-//                         controller.passwordController.clear();
-
-//                         Get.offAll(() => Home());
-//                         Get.snackbar(
-//                           "Success",
-//                           "Signed in successfully",
-//                           backgroundColor: Colors.yellow,
-//                         );
-//                       } else {
-//                         Get.snackbar(
-//                           "Login Failed",
-//                           "Please Enter valid email, phone number, or password",
-//                         );
-//                       }
-//                     },
-//                     child: Text(
-//                       "SIGN IN",
-//                       style: TextStyle(fontSize: 18, color: Color(0xFF030047)),
-//                     ),
-//                   ),
-//                 ),
-//               ),
-
-//             ],
-//           ),
-//         ),
-//       ),
-//     );
-//   }
-// }
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:sales/Auth/sign_in_controller.dart';
@@ -221,8 +14,6 @@ class Signin extends StatelessWidget {
       resizeToAvoidBottomInset: true,
       body: SingleChildScrollView(
         child: SizedBox(
-          // Ensure the SingleChildScrollView takes at least the full screen height
-          // This prevents overflow when the keyboard appears.
           height: MediaQuery.of(context).size.height,
           child: Stack(
             children: [
@@ -361,7 +152,7 @@ class Signin extends StatelessWidget {
                           controller.isPasswordVisible.value
                               ? Icons.visibility
                               : Icons.visibility_off,
-                          color: const Color(0xFF030047), // Icon color
+                          color: const Color(0xFF030047), 
                         ),
                         onPressed: controller.togglePasswordVisibility,
                       ),
@@ -423,20 +214,33 @@ class Signin extends StatelessWidget {
                       ),
                       elevation: 5, // Add a slight elevation for depth
                     ),
+
                     onPressed: () async {
                       final input = controller.emailOrPhoneController.text
                           .trim();
                       final password = controller.passwordController.text
                           .trim();
 
+                      // 🔍 Empty field check
                       if (input.isEmpty || password.isEmpty) {
                         Get.snackbar(
-                          "Error",
-                          "Please fill in both fields.",
+                          "Missing Information",
+                          "Please enter both email/phone and password.",
                           snackPosition: SnackPosition.BOTTOM,
                           backgroundColor: Colors.redAccent,
                           colorText: Colors.white,
-                          margin: const EdgeInsets.all(10),
+                        );
+                        return;
+                      }
+
+                      // ✉️ Email or phone format check
+                      if (!controller.isInputValid.value) {
+                        Get.snackbar(
+                          "Invalid Format",
+                          "Please enter a valid email or phone number.",
+                          snackPosition: SnackPosition.BOTTOM,
+                          backgroundColor: Colors.orange,
+                          colorText: Colors.white,
                         );
                         return;
                       }
@@ -446,38 +250,36 @@ class Signin extends StatelessWidget {
                           child: CircularProgressIndicator(
                             color: Color(0xFF030047),
                           ),
-                        ), // Spinner color
+                        ),
                         barrierDismissible: false,
                       );
 
                       final result = await controller.signIn(input, password);
-                      Get.back(); // Dismiss the loading dialog
+                      Get.back(); // Dismiss loader
 
                       if (result == null) {
-                        // Clear fields after successful login
                         controller.emailOrPhoneController.clear();
                         controller.passwordController.clear();
 
                         Get.offAll(() => Home());
                         Get.snackbar(
-                          "Success",
-                          "Signed in successfully!",
+                          "Welcome!",
+                          "Signed in successfully.",
                           snackPosition: SnackPosition.BOTTOM,
-                          backgroundColor: Colors.green, // Green for success
+                          backgroundColor: Colors.green,
                           colorText: Colors.white,
-                          margin: const EdgeInsets.all(10),
                         );
                       } else {
                         Get.snackbar(
                           "Login Failed",
-                          "Please enter valid email, phone number, or password.",
+                          result, // Use the specific message returned from controller
                           snackPosition: SnackPosition.BOTTOM,
-                          backgroundColor: Colors.redAccent, // Red for failure
+                          backgroundColor: Colors.redAccent,
                           colorText: Colors.white,
-                          margin: const EdgeInsets.all(10),
                         );
                       }
                     },
+
                     child: const Text(
                       "SIGN IN",
                       style: TextStyle(

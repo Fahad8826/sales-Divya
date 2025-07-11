@@ -25,7 +25,17 @@ class ProfileController extends GetxController {
     isLoading.value = false;
   }
 
+  // Future<void> logout() async {
+  //   await FirebaseAuth.instance.signOut();
+  // }
+
   Future<void> logout() async {
-    await FirebaseAuth.instance.signOut();
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).update(
+        {'isLoggedIn': false, 'deviceId': null},
+      );
+      await FirebaseAuth.instance.signOut();
+    }
   }
 }

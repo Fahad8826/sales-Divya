@@ -214,13 +214,20 @@ class Profile extends StatelessWidget {
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton.icon(
-                        onPressed: () async {
-                          // Example: Clear user session and navigate to login screen
-                          await controller
-                              .logout(); // Implement this in your ProfileController
-                          Get.offAllNamed(
-                            '/login',
-                          ); // Replace '/login' with your login route
+                        onPressed: () {
+                          Get.defaultDialog(
+                            title: 'Confirm Logout',
+                            middleText: 'Are you sure you want to log out?',
+                            textConfirm: 'Yes',
+                            textCancel: 'No',
+                            confirmTextColor: Colors.white,
+                            onConfirm: () async {
+                              await controller.logout();
+                              Get.offAllNamed('/login');
+                            },
+                            onCancel: () {},
+                            buttonColor: const Color.fromARGB(255, 26, 67, 121),
+                          );
                         },
                         icon: const Icon(Icons.settings_outlined),
                         label: const Text(

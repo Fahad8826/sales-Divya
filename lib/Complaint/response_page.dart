@@ -15,11 +15,16 @@ class ResponsePage extends StatelessWidget {
       appBar: AppBar(
         title: const Text(
           "Complaint Responses",
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: 18,
+            color: Colors.white,
+          ),
         ),
-        backgroundColor: const Color(0xFF2196F3),
         centerTitle: true,
-        elevation: 2,
+        backgroundColor: Color(0xFF3B82F6),
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: StreamBuilder(
         stream: controller.responseStream,
@@ -98,7 +103,6 @@ class ResponsePage extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        /// Status Badge
                         Row(
                           children: [
                             Container(
